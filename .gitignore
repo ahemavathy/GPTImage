@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+.npm
+
+# Production builds
+.next/
+out/
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Generated images (keep structure but ignore content)
+public/generated-logos/*.png
+public/generated-logos/*.jpg
+public/generated-logos/*.jpeg
+public/edited-images/*.png
+public/edited-images/*.jpg
+public/edited-images/*.jpeg
+
+# Keep directory structure with .gitkeep files
+!public/generated-logos/.gitkeep
+!public/edited-images/.gitkeep
+
+# PowerPoint temp files
+*.tmp
+~$*.pptx
+
+# Misc
+*.pem
+.pnp
+.pnp.js
