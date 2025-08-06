@@ -177,10 +177,11 @@ Response: {
   - Token usage tracking and optimization
 
 #### **PowerPoint Generator API**
-- **Endpoint**: `http://localhost:5000/api/Presentation/`
+- **Endpoint**: Configurable via `POWERPOINT_API_BASE_URL` environment variable
 - **Features**: 
   - Image upload (`/upload-images`)
   - JSON-to-PowerPoint conversion (`/create-from-json`)
+  - Template-based PowerPoint generation (`/create-from-template`)
   - File download (`/download/{fileName}`)
 
 ## 🔧 Technical Stack
@@ -288,7 +289,11 @@ Image Upload → Iterative Page → Sequential Edits → Canvas History → Undo
 
 ### **PowerPoint Generation Flow:**
 ```
+Standard Generation:
 Images → PowerPoint API Upload → Edited Content → /create-from-json → Download PPT File
+
+Template-based Generation:
+Images → PowerPoint API Upload → Edited Content → /create-from-template → Download PPT File
 ```
 
 ## 🛡️ Security Considerations

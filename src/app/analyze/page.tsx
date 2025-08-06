@@ -1,9 +1,20 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, Send, ArrowLeft, Image as ImageIcon, Loader2, X, Copy, Check, FileText } from 'lucide-react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
+
+// PowerPoint API configuration interface
+interface PowerPointConfig {
+  baseUrl: string;
+  endpoints: {
+    upload: string;
+    create: string;
+    createFromTemplate: string;
+    download: string;
+  };
+}
 
 // TypeScript interfaces following Next.js best practices
 interface AnalysisResponse {
@@ -87,11 +98,51 @@ export default function ImageAnalysisPage() {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [generatingPPT, setGeneratingPPT] = useState(false);
+  const [generatingFromTemplate, setGeneratingFromTemplate] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [editableContent, setEditableContent] = useState('');
+  const [powerpointConfig, setPowerpointConfig] = useState<PowerPointConfig | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load PowerPoint configuration on component mount
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const response = await fetch('/api/powerpoint-config');
+        if (response.ok) {
+          const config = await response.json();
+          setPowerpointConfig(config);
+        } else {
+          // Fallback configuration
+          setPowerpointConfig({
+            baseUrl: 'http://localhost:5000',
+            endpoints: {
+              upload: '/api/Presentation/upload-images',
+              create: '/api/Presentation/create-from-json',
+              createFromTemplate: '/api/Presentation/create-from-template',
+              download: '/api/Presentation/download'
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error loading PowerPoint config:', error);
+        // Fallback configuration
+        setPowerpointConfig({
+          baseUrl: 'http://localhost:5000',
+          endpoints: {
+            upload: '/api/Presentation/upload-images',
+            create: '/api/Presentation/create-from-json',
+            createFromTemplate: '/api/Presentation/create-from-template',
+            download: '/api/Presentation/download'
+          }
+        });
+      }
+    };
+
+    loadConfig();
+  }, []);
 
   // Event handlers with improved error handling
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,6 +180,12 @@ export default function ImageAnalysisPage() {
     setUploadingImages(true);
     setError('');
     
+    if (!powerpointConfig) {
+      setError('PowerPoint configuration not loaded');
+      setUploadingImages(false);
+      return;
+    }
+    
     try {
       const formData = new FormData();
       
@@ -137,7 +194,8 @@ export default function ImageAnalysisPage() {
         formData.append('files', file);
       });
       
-      const response = await fetch('http://localhost:5000/api/Presentation/upload-images', {
+      const uploadUrl = `${powerpointConfig.baseUrl}${powerpointConfig.endpoints.upload}`;
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         body: formData,
       });
@@ -308,7 +366,12 @@ export default function ImageAnalysisPage() {
       }
       
       // Call the PowerPoint generator API
-      const pptResponse = await fetch('http://localhost:5000/api/Presentation/create-from-json', {
+      if (!powerpointConfig) {
+        throw new Error('PowerPoint configuration not loaded');
+      }
+      
+      const createUrl = `${powerpointConfig.baseUrl}${powerpointConfig.endpoints.create}`;
+      const pptResponse = await fetch(createUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -330,7 +393,8 @@ export default function ImageAnalysisPage() {
       
       // Download the generated PowerPoint file using the download endpoint
       if (result.fileName) {
-        const downloadResponse = await fetch(`http://localhost:5000/api/Presentation/download/${result.fileName}`)
+        const downloadUrl = `${powerpointConfig.baseUrl}${powerpointConfig.endpoints.download}/${result.fileName}`;
+        const downloadResponse = await fetch(downloadUrl)
         
         if (downloadResponse.ok) {
           const blob = await downloadResponse.blob()
@@ -352,6 +416,79 @@ export default function ImageAnalysisPage() {
       setError(error instanceof Error ? error.message : 'Failed to generate PowerPoint')
     } finally {
       setGeneratingPPT(false)
+    }
+  }
+
+  const generatePowerPointFromTemplate = async () => {
+    if (!response?.response) return
+    
+    setGeneratingFromTemplate(true)
+    setError('')
+    
+    try {
+      // Use editable content if available, otherwise use cleaned original content
+      const contentToUse = editableContent || cleanJsonContent(response.response)
+      
+      // Prepare the request body for the PowerPoint API (same as regular generation)
+      const requestBody = {
+        jsonContent: contentToUse,
+        presentationName: `Template_Presentation_${Date.now()}`,
+        presentationTitle: "AI Generated Presentation from Template",
+        author: "GPT Image Generator",
+        uploadedImages: uploadedImages // Include references to uploaded images
+      }
+      
+      // Call the PowerPoint template generator API
+      if (!powerpointConfig) {
+        throw new Error('PowerPoint configuration not loaded');
+      }
+      
+      const createFromTemplateUrl = `${powerpointConfig.baseUrl}${powerpointConfig.endpoints.createFromTemplate}`;
+      const pptResponse = await fetch(createFromTemplateUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+      
+      if (!pptResponse.ok) {
+        const errorData = await pptResponse.text()
+        throw new Error(`PowerPoint template generation failed: ${pptResponse.status} - ${errorData}`)
+      }
+      
+      // Get the response with file information
+      const result = await pptResponse.json()
+      
+      if (!result.success) {
+        throw new Error('PowerPoint template generation was not successful')
+      }
+      
+      // Download the generated PowerPoint file using the download endpoint
+      if (result.fileName) {
+        const downloadUrl = `${powerpointConfig.baseUrl}${powerpointConfig.endpoints.download}/${result.fileName}`;
+        const downloadResponse = await fetch(downloadUrl)
+        
+        if (downloadResponse.ok) {
+          const blob = await downloadResponse.blob()
+          const url = window.URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = result.fileName
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+        } else {
+          throw new Error('Failed to download the generated PowerPoint template file')
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error generating PowerPoint from template:', error)
+      setError(error instanceof Error ? error.message : 'Failed to generate PowerPoint from template')
+    } finally {
+      setGeneratingFromTemplate(false)
     }
   }
 
@@ -563,7 +700,7 @@ export default function ImageAnalysisPage() {
                       </button>
                       <button
                         onClick={generatePowerPoint}
-                        disabled={generatingPPT}
+                        disabled={generatingPPT || generatingFromTemplate}
                         className="flex items-center px-3 py-2 text-sm rounded-md transition-colors bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                       >
                         {generatingPPT ? (
@@ -575,6 +712,23 @@ export default function ImageAnalysisPage() {
                           <>
                             <FileText className="w-4 h-4 mr-1" />
                             Generate PowerPoint
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={generatePowerPointFromTemplate}
+                        disabled={generatingPPT || generatingFromTemplate}
+                        className="flex items-center px-3 py-2 text-sm rounded-md transition-colors bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      >
+                        {generatingFromTemplate ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            Generating from Template...
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="w-4 h-4 mr-1" />
+                            Generate from Template
                           </>
                         )}
                       </button>

@@ -44,7 +44,11 @@ Before running this application, you need:
 3. **API Access**: 
    - GPT Image API access (limited - apply [here](https://aka.ms/oai/gptimage1access))
    - GPT-4o Vision API access
-4. **PowerPoint Generator API**: External service for presentation generation (optional)
+4. **PowerPoint Generator Service** (Required for PowerPoint features):
+   - The PowerPoint generation functionality requires a separate service
+   - Download and run the PowerPoint service from: [https://github.com/ahemavathy/Powerpoint](https://github.com/ahemavathy/Powerpoint)
+   - By default, the service should run on `http://localhost:5000`
+   - Configure the base URL in your `.env.local` file if running on a different port
 
 ## 🏗️ Application Structure
 
@@ -100,9 +104,30 @@ AZURE_OPENAI_GPT4O_DEPLOYMENT_NAME=your_gpt4o_deployment_name
 
 # GPT-4o System Prompt (configurable)
 AZURE_OPENAI_GPT4O_SYSTEM_PROMPT="Your system prompt for presentation generation..."
+
+# PowerPoint Generator Service (if running on different port)
+POWERPOINT_API_BASE_URL=http://localhost:5000
 ```
 
-### 3. Run the Application
+### 3. Set Up PowerPoint Service (Required for PowerPoint Features)
+
+**Important**: The PowerPoint generation features require a separate service to be running.
+
+1. **Download the PowerPoint Service**:
+```bash
+git clone https://github.com/ahemavathy/Powerpoint.git
+cd Powerpoint
+```
+
+2. **Follow the setup instructions** in the PowerPoint repository to install dependencies and run the service
+
+3. **Start the PowerPoint Service** (typically runs on `http://localhost:5000`)
+
+4. **Verify the service is running** by visiting `http://localhost:5000` in your browser
+
+**Note**: If you run the PowerPoint service on a different port, update the `POWERPOINT_API_BASE_URL` in your `.env.local` file accordingly.
+
+### 4. Run the GPTImage Application
 
 ```bash
 # Development mode
@@ -278,9 +303,13 @@ GPTImage/
    - Ensure your Azure subscription has sufficient credits
 
 3. **"PowerPoint generation failed"**
-   - Check if the external PowerPoint API is running (localhost:5000)
-   - Verify image upload to PowerPoint API succeeded
-   - Ensure JSON content is properly formatted
+   - **Service Not Running**: Ensure the PowerPoint service is running on the configured port
+     - Check if `http://localhost:5000` (or your configured URL) is accessible
+     - Download and set up the service from: https://github.com/ahemavathy/Powerpoint
+   - **Port Configuration**: Verify `POWERPOINT_API_BASE_URL` in your `.env.local` matches the running service
+   - **Image Upload Issues**: Check if image upload to PowerPoint API succeeded
+   - **JSON Format**: Ensure slide content JSON is properly formatted
+   - **Service Dependencies**: Make sure the PowerPoint service has all required dependencies installed
 
 4. **"The default export is not a React Component"**
    - Clear Next.js cache: `rm -rf .next`
@@ -309,8 +338,9 @@ Azure OpenAI services have rate limits:
 
 1. **Clone & Install**: `git clone <repo> && cd GPTImage && npm install`
 2. **Configure**: Copy `.env.example` to `.env.local` and add your Azure credentials
-3. **Run**: `npm run dev` and open `http://localhost:3000`
-4. **Explore**: 
+3. **PowerPoint Service**: Clone and run https://github.com/ahemavathy/Powerpoint (required for presentation features)
+4. **Run**: `npm run dev` and open `http://localhost:3000`
+5. **Explore**: 
    - Generate logos on the home page
    - Analyze images and create presentations on `/analyze`
    - Edit images on `/edit` or `/iterative`
