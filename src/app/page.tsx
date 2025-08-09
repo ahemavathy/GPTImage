@@ -49,7 +49,11 @@ export default function HomePage() {
       
       // Handle both single and multiple image responses
       if (data.images && Array.isArray(data.images)) {
+        // Multiple images response format
         setGeneratedLogos(data.images)
+      } else if (data.url) {
+        // Single image response format
+        setGeneratedLogos([data])
       } else {
         throw new Error('No image URLs received from API')
       }
