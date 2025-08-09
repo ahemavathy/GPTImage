@@ -240,6 +240,71 @@ export default function ImageAnalysisPage() {
     setUploadedImages(newUploadedImages)
   }
 
+  // Helper function to convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => {
+        const result = reader.result as string
+        // Keep the full data URL (includes MIME type for proper format detection)
+        resolve(result)
+      }
+      reader.onerror = error => reject(error)
+    })
+  }
+
+  // Post-process the GPT-4o response to include image data
+  const addImageDataToResponse = async (responseText: string, files: File[]): Promise<string> => {
+    try {
+      console.log('Original response text:', responseText)
+      
+      // First, clean any markdown formatting from the response
+      const cleanedResponse = cleanJsonContent(responseText)
+      console.log('Cleaned response text:', cleanedResponse)
+      
+      // Parse the JSON response
+      let jsonResponse = JSON.parse(cleanedResponse)
+      console.log('Parsed JSON response:', jsonResponse)
+      
+      // Create images array with full data URLs
+      const imagesWithData: Array<{id: string, data: string}> = []
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        try {
+          const dataUrl = await fileToBase64(file)
+          imagesWithData.push({
+            id: file.name,
+            data: dataUrl
+          })
+        } catch (error) {
+          console.error(`Failed to convert ${file.name} to data URL:`, error)
+          // Add placeholder for failed conversions
+          imagesWithData.push({
+            id: file.name,
+            data: ""
+          })
+        }
+      }
+      
+      console.log('Images with data:', imagesWithData.length, 'images')
+      
+      // Add images array to the response
+      jsonResponse.images = imagesWithData
+      console.log('Enhanced JSON response:', jsonResponse)
+      
+      // Return the enhanced JSON as string
+      const result = JSON.stringify(jsonResponse, null, 2)
+      console.log('Final stringified result length:', result.length)
+      return result
+    } catch (error) {
+      console.error('Error adding image data to response:', error)
+      // If JSON parsing fails, return original response
+      return responseText
+    }
+  }
+
   const handleSubmit = async () => {
     if (selectedFiles.length === 0) {
       setError('Please upload at least one image')
@@ -277,9 +342,17 @@ export default function ImageAnalysisPage() {
       }
 
       const data: AnalysisResponse = await response.json()
-      setResponse(data)
-      // Initialize editable content with cleaned JSON
-      setEditableContent(cleanJsonContent(data.response))
+      
+      // Post-process the response to include image data
+      const enhancedResponse = await addImageDataToResponse(data.response, selectedFiles)
+      console.log('Enhanced response:', enhancedResponse)
+      
+      // Update the response with enhanced data
+      const enhancedData = { ...data, response: enhancedResponse }
+      setResponse(enhancedData)
+      
+      // Initialize editable content with the enhanced JSON string (already cleaned)
+      setEditableContent(enhancedResponse)
     } catch (error) {
       console.error('Error analyzing images:', error)
       setError(error instanceof Error ? error.message : 'An error occurred')
@@ -305,20 +378,14 @@ export default function ImageAnalysisPage() {
     }
   }
 
-  const cleanJsonContent = (content: string) => {
-    return content
-      .replace(/```json\n?/g, '')   // Remove ```json at the beginning
-      .replace(/\n?```$/g, '')      // Remove ``` at the end
-      .replace(/```/g, '')          // Remove any remaining ``` markers
-      .trim()                       // Remove leading/trailing whitespace
-  }
+
 
   const copyForAPI = async () => {
     if (!editableContent && !response?.response) return;
     
     try {
       // Use editable content if available, otherwise use cleaned original content
-      const contentToCopy = editableContent || (response?.response ? cleanJsonContent(response.response) : '');
+      const contentToCopy = editableContent || (response?.response || '');
       const formattedString = formatForAPI(contentToCopy);
       
       // Modern clipboard API with fallback
@@ -353,8 +420,8 @@ export default function ImageAnalysisPage() {
     setError('')
     
     try {
-      // Use editable content if available, otherwise use cleaned original content
-      const contentToUse = editableContent || cleanJsonContent(response.response)
+      // Use editable content if available, otherwise use the enhanced response
+      const contentToUse = editableContent || response.response
       
       // Prepare the request body for the PowerPoint API
       const requestBody = {
@@ -426,8 +493,8 @@ export default function ImageAnalysisPage() {
     setError('')
     
     try {
-      // Use editable content if available, otherwise use cleaned original content
-      const contentToUse = editableContent || cleanJsonContent(response.response)
+      // Use editable content if available, otherwise use the enhanced response
+      const contentToUse = editableContent || response.response
       
       // Prepare the request body for the PowerPoint API (same as regular generation)
       const requestBody = {
