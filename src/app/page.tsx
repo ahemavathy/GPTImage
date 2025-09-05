@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Sparkles, Download, Loader2, Edit3, Image, Brush, BarChart3 } from 'lucide-react'
+import { Sparkles, Download, Loader2, Edit3, Image, Brush, BarChart3, Video, Play } from 'lucide-react'
 import Link from 'next/link'
 import Navigation from '../components/Navigation'
 
@@ -10,57 +10,125 @@ interface GeneratedLogo {
   revisedPrompt: string
 }
 
+interface GeneratedVideo {
+  url: string
+  prompt: string
+  duration: number
+  width: number
+  height: number
+  jobId: string
+}
+
 export default function HomePage() {
   const [businessDescription, setBusinessDescription] = useState('')
   const [numberOfImages, setNumberOfImages] = useState(1)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedLogos, setGeneratedLogos] = useState<GeneratedLogo[]>([])
+  const [generatedVideo, setGeneratedVideo] = useState<GeneratedVideo | null>(null)
   const [error, setError] = useState('')
+  const [generationType, setGenerationType] = useState<'image' | 'video'>('image')
+  const [videoDuration, setVideoDuration] = useState(5)
+  const [videoResolution, setVideoResolution] = useState({ width: 480, height: 480 })
+  const [videoInputImage, setVideoInputImage] = useState<File | null>(null)
+  const [videoInputImagePreview, setVideoInputImagePreview] = useState<string | null>(null)
+
+  const handleVideoImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setVideoInputImage(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setVideoInputImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeVideoImage = () => {
+    setVideoInputImage(null)
+    setVideoInputImagePreview(null)
+  }
 
   const generateLogo = async () => {
     if (!businessDescription.trim()) {
-      setError('Please enter a business description')
+      setError('Please enter a description')
       return
     }
 
     setIsGenerating(true)
     setError('')
     setGeneratedLogos([])
+    setGeneratedVideo(null)
 
     try {
-      const response = await fetch('/api/generate-logo', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          businessDescription,
-          numberOfImages 
-        }),
-      })
+      if (generationType === 'video') {
+        // Convert image to base64 if provided
+        let imageBase64 = null
+        if (videoInputImage) {
+          const reader = new FileReader()
+          imageBase64 = await new Promise<string>((resolve) => {
+            reader.onload = (e) => resolve(e.target?.result as string)
+            reader.readAsDataURL(videoInputImage)
+          })
+        }
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to generate logo')
-      }
+        const response = await fetch('/api/generate-video', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            prompt: businessDescription,
+            width: videoResolution.width,
+            height: videoResolution.height,
+            duration: videoDuration,
+            image: imageBase64
+          }),
+        })
 
-      const data = await response.json()
-      console.log('API Response:', data) // Debug log
-      
-      // Handle both single and multiple image responses
-      if (data.images && Array.isArray(data.images)) {
-        // Multiple images response format
-        setGeneratedLogos(data.images)
-      } else if (data.url) {
-        // Single image response format
-        setGeneratedLogos([data])
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to generate video')
+        }
+
+        const data = await response.json()
+        console.log('Video API Response:', data)
+        setGeneratedVideo(data)
       } else {
-        throw new Error('No image URLs received from API')
+        const response = await fetch('/api/generate-logo', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            businessDescription,
+            numberOfImages 
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to generate logo')
+        }
+
+        const data = await response.json()
+        console.log('API Response:', data) // Debug log
+        
+        // Handle both single and multiple image responses
+        if (data.images && Array.isArray(data.images)) {
+          // Multiple images response format
+          setGeneratedLogos(data.images)
+        } else if (data.url) {
+          // Single image response format
+          setGeneratedLogos([data])
+        } else {
+          throw new Error('No image URLs received from API')
+        }
       }
       
     } catch (err) {
-      console.error('Error generating logo:', err)
-      setError(err instanceof Error ? err.message : 'Failed to generate logo')
+      console.error('Error generating content:', err)
+      setError(err instanceof Error ? err.message : 'Failed to generate content')
     } finally {
       setIsGenerating(false)
     }
@@ -94,6 +162,29 @@ export default function HomePage() {
     }
   }
 
+  const downloadVideo = async (videoData: GeneratedVideo) => {
+    if (!videoData?.url) return
+
+    try {
+      const response = await fetch(videoData.url)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      
+      const filename = videoData.url.split('/').pop() || `video-${Date.now()}.mp4`
+      a.download = filename
+      
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error('Download error:', err)
+      setError('Failed to download video')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Navigation Bar */}
@@ -105,136 +196,366 @@ export default function HomePage() {
           <div className="text-center mb-12">
             <div className="flex items-center justify-center mb-6">
               <Sparkles className="w-12 h-12 text-indigo-600 mr-3" />
-              <h1 className="text-4xl font-bold text-gray-900">AI Image Generator</h1>
+              <h1 className="text-4xl font-bold text-gray-900">AI Content Generator</h1>
             </div>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Let AI create professional images for you to prototype in seconds
+              Generate professional images and videos with AI in seconds
             </p>
           </div>
 
-        {/* Input Section */}
+        {/* Main Input Section */}
         <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-          <label htmlFor="business-description" className="block text-lg font-semibold text-gray-700 mb-4">
-            Describe Your Needs
-          </label>
-          <textarea
-            id="business-description"
-            value={businessDescription}
-            onChange={(e) => setBusinessDescription(e.target.value)}
-            placeholder="e.g., An air fryer on a kitchen countertop"
-            className="w-full h-32 p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-            disabled={isGenerating}
-          />
-          
-          {/* Number of Images Input */}
-          <div className="mt-6">
-            <label htmlFor="number-of-images" className="block text-lg font-semibold text-gray-700 mb-2">
-              Number of Images
-            </label>
-            <select
-              id="number-of-images"
-              value={numberOfImages}
-              onChange={(e) => setNumberOfImages(parseInt(e.target.value))}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-              disabled={isGenerating}
-            >
-              <option value={1}>1 Image</option>
-              <option value={2}>2 Images</option>
-              <option value={3}>3 Images</option>
-              <option value={4}>4 Images</option>
-            </select>
-          </div>
-          
-          {error && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              {error}
+          {/* Content Type Selection */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">What would you like to create?</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div 
+                onClick={() => setGenerationType('image')}
+                className={`cursor-pointer p-6 rounded-lg border-2 transition-all duration-200 ${
+                  generationType === 'image'
+                    ? 'border-indigo-500 bg-indigo-50 shadow-md'
+                    : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100'
+                }`}
+              >
+                <div className="flex items-center mb-3">
+                  <Image className={`w-6 h-6 mr-3 ${generationType === 'image' ? 'text-indigo-600' : 'text-gray-600'}`} />
+                  <h3 className={`text-lg font-semibold ${generationType === 'image' ? 'text-indigo-900' : 'text-gray-800'}`}>
+                    Generate Images
+                  </h3>
+                </div>
+                <p className={`text-sm ${generationType === 'image' ? 'text-indigo-700' : 'text-gray-600'}`}>
+                  Create professional images, logos, and graphics using GPT-4 Vision
+                </p>
+              </div>
+              
+              <div 
+                onClick={() => setGenerationType('video')}
+                className={`cursor-pointer p-6 rounded-lg border-2 transition-all duration-200 ${
+                  generationType === 'video'
+                    ? 'border-purple-500 bg-purple-50 shadow-md'
+                    : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100'
+                }`}
+              >
+                <div className="flex items-center mb-3">
+                  <Video className={`w-6 h-6 mr-3 ${generationType === 'video' ? 'text-purple-600' : 'text-gray-600'}`} />
+                  <h3 className={`text-lg font-semibold ${generationType === 'video' ? 'text-purple-900' : 'text-gray-800'}`}>
+                    Generate Videos
+                  </h3>
+                  <span className="ml-2 px-2 py-1 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full">
+                    Sora
+                  </span>
+                </div>
+                <p className={`text-sm ${generationType === 'video' ? 'text-purple-700' : 'text-gray-600'}`}>
+                  Create realistic video clips from text using Azure OpenAI's Sora model
+                </p>
+              </div>
             </div>
-          )}
-
-          <button
-            onClick={generateLogo}
-            disabled={isGenerating || !businessDescription.trim()}
-            className="mt-6 w-full bg-indigo-600 text-white font-semibold py-4 px-6 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Generating Your {numberOfImages > 1 ? 'Images' : 'Image'}...
-              </>
+          </div>
+          {/* Input Form */}
+          <div className="space-y-6">
+            <div>
+              <label htmlFor="business-description" className="block text-lg font-semibold text-gray-800 mb-3">
+                {generationType === 'image' ? 'Describe Your Image' : 'Describe Your Video Scene'}
+              </label>
+              <textarea
+                id="business-description"
+                value={businessDescription}
+                onChange={(e) => setBusinessDescription(e.target.value)}
+                placeholder={
+                  generationType === 'image' 
+                    ? "e.g., A modern tech startup logo with clean lines and blue colors"
+                    : "e.g., A cat playing piano in a cozy jazz bar with warm lighting"
+                }
+                className="w-full h-32 p-4 border-2 border-gray-300 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-gray-900 placeholder-gray-500 bg-white"
+                disabled={isGenerating}
+              />
+            </div>
+            
+            {/* Generation Options */}
+            {generationType === 'image' ? (
+              <div>
+                <label htmlFor="number-of-images" className="block text-lg font-semibold text-gray-800 mb-3">
+                  Number of Images
+                </label>
+                <select
+                  id="number-of-images"
+                  value={numberOfImages}
+                  onChange={(e) => setNumberOfImages(parseInt(e.target.value))}
+                  className="w-full p-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-gray-900 bg-white"
+                  disabled={isGenerating}
+                >
+                  <option value={1} className="text-gray-900">1 Image</option>
+                  <option value={2} className="text-gray-900">2 Images</option>
+                  <option value={3} className="text-gray-900">3 Images</option>
+                  <option value={4} className="text-gray-900">4 Images</option>
+                </select>
+              </div>
             ) : (
-              <>
-                <Sparkles className="w-5 h-5 mr-2" />
-                Generate {numberOfImages > 1 ? `${numberOfImages} Images` : 'Image'}
-              </>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="video-duration" className="block text-lg font-semibold text-gray-800 mb-3">
+                      Duration
+                    </label>
+                    <select
+                      id="video-duration"
+                      value={videoDuration}
+                      onChange={(e) => setVideoDuration(parseInt(e.target.value))}
+                      className="w-full p-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all text-gray-900 bg-white"
+                      disabled={isGenerating}
+                    >
+                      <option value={3} className="text-gray-900">3 seconds</option>
+                      <option value={5} className="text-gray-900">5 seconds</option>
+                      <option value={10} className="text-gray-900">10 seconds</option>
+                      <option value={15} className="text-gray-900">15 seconds</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="video-resolution" className="block text-lg font-semibold text-gray-800 mb-3">
+                      Resolution
+                    </label>
+                    <select
+                      id="video-resolution"
+                      value={`${videoResolution.width}x${videoResolution.height}`}
+                      onChange={(e) => {
+                        const [width, height] = e.target.value.split('x').map(Number)
+                        setVideoResolution({ width, height })
+                      }}
+                      className="w-full p-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all text-gray-900 bg-white"
+                      disabled={isGenerating}
+                    >
+                      <option value="480x480" className="text-gray-900">480x480 (Square)</option>
+                      <option value="1280x720" className="text-gray-900">1280x720 (HD)</option>
+                      <option value="1920x1080" className="text-gray-900">1920x1080 (Full HD)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Optional Image Input */}
+                <div>
+                  <label className="block text-lg font-semibold text-gray-800 mb-3">
+                    Reference Image <span className="text-sm text-purple-600 font-normal">(Optional)</span>
+                  </label>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Upload an image to guide the video generation. Sora will use this as a starting frame or reference for the video style.
+                  </p>
+                  
+                  {!videoInputImagePreview ? (
+                    <div className="border-2 border-dashed border-purple-300 rounded-xl p-6 text-center hover:border-purple-400 transition-colors">
+                      <input
+                        type="file"
+                        id="video-image-upload"
+                        accept="image/*"
+                        onChange={handleVideoImageUpload}
+                        className="hidden"
+                        disabled={isGenerating}
+                      />
+                      <label
+                        htmlFor="video-image-upload"
+                        className="cursor-pointer flex flex-col items-center space-y-2"
+                      >
+                        <svg className="w-12 h-12 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <span className="text-purple-600 font-medium">Click to upload image</span>
+                        <span className="text-gray-500 text-sm">PNG, JPG, JPEG up to 10MB</span>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <div className="border-2 border-purple-300 rounded-xl p-4 bg-purple-50">
+                        <img
+                          src={videoInputImagePreview}
+                          alt="Reference"
+                          className="max-w-full h-48 object-contain mx-auto rounded-lg"
+                        />
+                        <div className="flex justify-between items-center mt-3">
+                          <span className="text-sm text-gray-700">
+                            {videoInputImage?.name}
+                          </span>
+                          <button
+                            onClick={removeVideoImage}
+                            className="text-red-600 hover:text-red-800 transition-colors"
+                            disabled={isGenerating}
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
-          </button>
+            
+            {error && (
+              <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-800">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {error}
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={generateLogo}
+              disabled={isGenerating || !businessDescription.trim()}
+              className={`w-full font-semibold py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center text-white ${
+                generationType === 'image'
+                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-gray-400 disabled:to-gray-500'
+                  : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500'
+              } disabled:cursor-not-allowed shadow-lg hover:shadow-xl`}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                  {generationType === 'image' 
+                    ? `Generating ${numberOfImages > 1 ? 'Images' : 'Image'}...`
+                    : 'Generating Video... (This may take several minutes)'
+                  }
+                </>
+              ) : (
+                <>
+                  {generationType === 'image' ? (
+                    <Sparkles className="w-5 h-5 mr-3" />
+                  ) : (
+                    <Play className="w-5 h-5 mr-3" />
+                  )}
+                  {generationType === 'image' 
+                    ? `Generate ${numberOfImages > 1 ? `${numberOfImages} Images` : 'Image'}`
+                    : 'Generate Video with Sora'
+                  }
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Debug Info */}
         {process.env.NODE_ENV === 'development' && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
             <p className="text-sm text-yellow-800">
-              Debug: generatedLogos count: {generatedLogos.length}
-              {generatedLogos.length > 0 && (
+              Debug: {generationType === 'image' ? `Images count: ${generatedLogos.length}` : `Video: ${generatedVideo ? 'Generated' : 'None'}`}
+              {generationType === 'image' && generatedLogos.length > 0 && (
                 <>
                   <br />First URL: {generatedLogos[0]?.url}
                   <br />First Prompt: {generatedLogos[0]?.revisedPrompt}
+                </>
+              )}
+              {generationType === 'video' && generatedVideo && (
+                <>
+                  <br />Video URL: {generatedVideo.url}
+                  <br />Video Prompt: {generatedVideo.prompt}
                 </>
               )}
             </p>
           </div>
         )}
 
-        {/* Generated Images Section */}
-        {generatedLogos.length > 0 && (
+        {/* Generated Content Section */}
+        {((generationType === 'image' && generatedLogos.length > 0) || (generationType === 'video' && generatedVideo)) && (
           <div className="bg-white rounded-xl shadow-lg p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-              Your Generated {generatedLogos.length > 1 ? 'Images' : 'Image'}
+              {generationType === 'image' 
+                ? `Your Generated ${generatedLogos.length > 1 ? 'Images' : 'Image'}`
+                : 'Your Generated Video'
+              }
             </h2>
             
-            <div className={`grid gap-6 ${
-              generatedLogos.length === 1 ? 'grid-cols-1 justify-items-center' :
-              generatedLogos.length === 2 ? 'grid-cols-1 md:grid-cols-2' :
-              'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-            }`}>
-              {generatedLogos.map((logo, index) => (
-                <div key={index} className="flex flex-col items-center space-y-4">
-                  <div className="relative bg-gray-50 rounded-lg p-4 max-w-sm">
-                    <img
-                      src={logo.url}
-                      alt={`Generated Image ${index + 1}`}
-                      className="max-w-full h-auto rounded-lg shadow-md"
-                      onLoad={() => console.log(`Image ${index + 1} loaded successfully`)}
-                      onError={(e) => {
-                        console.error(`Image ${index + 1} failed to load:`, e)
-                        setError(`Failed to load generated image ${index + 1}`)
-                      }}
-                      crossOrigin="anonymous"
-                    />
-                  </div>
+            {generationType === 'image' ? (
+              <div className={`grid gap-6 ${
+                generatedLogos.length === 1 ? 'grid-cols-1 justify-items-center' :
+                generatedLogos.length === 2 ? 'grid-cols-1 md:grid-cols-2' :
+                'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+              }`}>
+                {generatedLogos.map((logo, index) => (
+                  <div key={index} className="flex flex-col items-center space-y-4">
+                    <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 max-w-sm shadow-md">
+                      <img
+                        src={logo.url}
+                        alt={`Generated Image ${index + 1}`}
+                        className="max-w-full h-auto rounded-lg shadow-sm"
+                        onLoad={() => console.log(`Image ${index + 1} loaded successfully`)}
+                        onError={(e) => {
+                          console.error(`Image ${index + 1} failed to load:`, e)
+                          setError(`Failed to load generated image ${index + 1}`)
+                        }}
+                        crossOrigin="anonymous"
+                      />
+                    </div>
 
-                  <div className="text-center max-w-sm">
-                    <p className="text-sm text-gray-600 mb-4">
-                      <strong>AI Interpretation:</strong> {logo.revisedPrompt}
-                    </p>
-                  </div>
+                    <div className="text-center max-w-sm">
+                      <p className="text-sm text-gray-700 mb-4 leading-relaxed">
+                        <strong className="text-gray-900">AI Interpretation:</strong> {logo.revisedPrompt}
+                      </p>
+                    </div>
 
-                  <button
-                    onClick={() => downloadLogo(logo, index)}
-                    className="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center"
+                    <button
+                      onClick={() => downloadLogo(logo, index)}
+                      className="bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold py-3 px-6 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center shadow-lg hover:shadow-xl"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Image {generatedLogos.length > 1 ? (index + 1) : ''}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : generatedVideo && (
+              <div className="flex flex-col items-center space-y-6">
+                <div className="relative bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 max-w-3xl shadow-lg">
+                  <video
+                    controls
+                    className="max-w-full h-auto rounded-lg shadow-md"
+                    preload="metadata"
+                    onError={(e) => {
+                      console.error('Video failed to load:', e)
+                      setError('Failed to load generated video')
+                    }}
                   >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Image {generatedLogos.length > 1 ? (index + 1) : ''}
-                  </button>
+                    <source src={generatedVideo.url} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
                 </div>
-              ))}
-            </div>
+
+                <div className="text-center max-w-2xl">
+                  <p className="text-sm text-gray-700 mb-3 leading-relaxed">
+                    <strong className="text-gray-900">Prompt:</strong> {generatedVideo.prompt}
+                  </p>
+                  <div className="flex justify-center space-x-6 text-sm text-gray-600">
+                    <span className="flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                      </svg>
+                      {generatedVideo.duration}s
+                    </span>
+                    <span className="flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
+                      </svg>
+                      {generatedVideo.width}×{generatedVideo.height}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => downloadVideo(generatedVideo)}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-200 flex items-center shadow-lg hover:shadow-xl"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Video
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {/* Footer */}
         <div className="mt-12 text-center text-gray-500 text-sm">
-          <p>Powered by Azure OpenAI GPT Image API</p>
+          <p>Powered by Azure OpenAI | Images: GPT-4 Vision | Videos: Sora Model</p>
         </div>
         </div>
       </main>

@@ -1,6 +1,6 @@
-# AI Image Generation Platform
+# AI Content Generation Platform
 
-A comprehensive web application that combines AI-powered logo generation, image editing, and PowerPoint presentation creation using Azure OpenAI services. Create professional logos, edit images with AI, analyze multiple images, and generate compelling presentations - all in one platform.
+A comprehensive web application that combines AI-powered logo generation, video creation, image editing, and PowerPoint presentation creation using Azure OpenAI services. Create professional logos, generate videos with Sora, edit images with AI, analyze multiple images, and generate compelling presentations - all in one platform.
 
 ## 🚀 Features
 
@@ -9,6 +9,13 @@ A comprehensive web application that combines AI-powered logo generation, image 
 - Generate multiple images at once (configurable 1-10 images)
 - Professional, business-ready results
 - One-click individual downloads
+
+### 🎬 **AI Video Generation with Sora**
+- **NEW**: Generate videos using Azure OpenAI's Sora model
+- Create short video clips (3-15 seconds) from text descriptions
+- Multiple resolution options (480x480, 1280x720, 1920x1080)
+- Realistic and imaginative video scenes
+- Download generated videos in MP4 format
 
 ### 🖼️ **Advanced Image Editing**
 - **Batch Editing**: Edit multiple images simultaneously
@@ -38,9 +45,11 @@ Before running this application, you need:
 1. **Azure OpenAI Resources**: 
    - **GPT Image Resource**: For logo generation and image editing
    - **GPT-4o Resource**: For image analysis and presentation generation
+   - **Sora Model Access**: For video generation (requires preview access)
 2. **Model Deployments**:
    - Deploy the `gpt-image-1` model for image generation/editing
    - Deploy the `gpt-4o` model for vision and analysis
+   - Deploy the `sora` model for video generation
 3. **API Access**: 
    - GPT Image API access (limited - apply [here](https://aka.ms/oai/gptimage1access))
    - GPT-4o Vision API access
@@ -54,8 +63,8 @@ Before running this application, you need:
 
 The platform consists of five main sections:
 
-### 🏠 **Home - Logo Generation** (`/`)
-Generate professional logos and images from business descriptions
+### 🏠 **Home - Content Generation** (`/`)
+Generate professional logos and images from business descriptions, or create videos using the Sora model
 
 ### 📊 **Analyze - PPT Generation** (`/analyze`)
 Upload images, analyze with GPT-4o, and create PowerPoint presentations
@@ -102,6 +111,11 @@ AZURE_OPENAI_GPT4O_ENDPOINT=https://your-gpt4o-resource.openai.azure.com
 AZURE_OPENAI_GPT4O_API_KEY=your_gpt4o_api_key_here
 AZURE_OPENAI_GPT4O_DEPLOYMENT_NAME=your_gpt4o_deployment_name
 
+# Azure OpenAI Sora API (for video generation - separate resource)
+AZURE_OPENAI_SORA_ENDPOINT=https://your-sora-resource.openai.azure.com
+AZURE_OPENAI_SORA_API_KEY=your_sora_api_key_here
+AZURE_OPENAI_SORA_DEPLOYMENT_NAME=your_sora_deployment_name
+
 # GPT-4o System Prompt (configurable)
 AZURE_OPENAI_GPT4O_SYSTEM_PROMPT="Your system prompt for presentation generation..."
 
@@ -142,16 +156,30 @@ The application will be available at `http://localhost:3000`
 
 ## 📖 How to Use
 
-### 🏠 Logo Generation
+### 🏠 Logo & Video Generation
 
-1. **Navigate to Home**: The main page (`/`) for logo generation
-2. **Enter Business Description**: Describe your business with details about:
-   - Type of business and industry
-   - Preferred colors and style
-   - Target audience
-3. **Set Image Count**: Choose how many logo variations to generate (1-10)
-4. **Generate**: Click "Generate Logo" and wait for AI processing
-5. **Download**: Download individual logos or all at once
+1. **Navigate to Home**: The main page (`/`) for content generation
+2. **Choose Content Type**: Toggle between "Generate Images" and "Generate Video (Sora)"
+
+#### For Image Generation:
+2. **Enter Description**: Describe your image with details about:
+   - Type of content and style
+   - Preferred colors and composition
+   - Target audience or use case
+3. **Set Image Count**: Choose how many variations to generate (1-4)
+4. **Generate**: Click "Generate Images" and wait for AI processing
+5. **Download**: Download individual images
+
+#### For Video Generation:
+2. **Enter Video Concept**: Describe your video scene in detail:
+   - Action or scene you want to see
+   - Setting and environment
+   - Style and mood
+3. **Set Parameters**: 
+   - **Duration**: Choose video length (3-15 seconds)
+   - **Resolution**: Select from 480x480, 1280x720, or 1920x1080
+4. **Generate**: Click "Generate Video with Sora" and wait for processing (can take several minutes)
+5. **Preview & Download**: Watch the generated video and download the MP4 file
 
 ### 📊 PPT Generation (Analyze Page)
 
@@ -193,11 +221,19 @@ The application will be available at `http://localhost:3000`
 
 ## 💡 Example Prompts
 
-### Logo Generation
+### Image Generation
 - "Modern tech startup focused on sustainable energy solutions, minimalist design, green and blue colors"
 - "Luxury restaurant specializing in Italian cuisine, elegant and sophisticated style, gold and black colors"
 - "Fitness gym targeting young professionals, bold and energetic design, red and black colors"
 - "Eco-friendly cleaning products company, nature-inspired, green and white palette"
+
+### Video Generation (Sora)
+- "A cat playing piano in a jazz bar with warm, moody lighting"
+- "A drone flyover of a modern city skyline at sunset"
+- "Close-up of coffee being poured into a cup in slow motion"
+- "A person walking through a field of sunflowers on a sunny day"
+- "Ocean waves crashing against rocks on a cliff during golden hour"
+- "A chef preparing a gourmet dish in a professional kitchen"
 
 ### PPT Generation Guidelines
 - "Create a compelling presentation that highlights our new air fryer's sophistication and strengthens our brand's positioning as a premium kitchen appliance"
@@ -261,7 +297,8 @@ GPTImage/
 ├── .github/
 │   └── copilot-instructions.md  # AI assistant guidelines
 ├── public/
-│   ├── generated-images/        # Generated logo storage
+│   ├── generated-logos/        # Generated logo storage
+│   ├── generated-videos/       # Generated video storage (NEW)
 │   ├── edited-images/          # Edited image storage
 │   └── .gitkeep                # Preserve directory structure
 └── src/
@@ -282,6 +319,8 @@ GPTImage/
         └── api/
             ├── generate-logo/
             │   └── route.ts     # Logo generation API
+            ├── generate-video/
+            │   └── route.ts     # Video generation API (NEW)
             ├── analyze-images/
             │   └── route.ts     # Image analysis API
             └── edit-image/
@@ -294,13 +333,15 @@ GPTImage/
 
 1. **"Azure OpenAI configuration is missing"**
    - Ensure all environment variables are set in `.env.local`
-   - Check that both GPT Image and GPT-4o resources are active
+   - Check that GPT Image, GPT-4o, and Sora resources are active
    - Verify deployment names match your Azure deployments
+   - For Sora: Ensure `AZURE_OPENAI_SORA_ENDPOINT`, `AZURE_OPENAI_SORA_API_KEY`, and `AZURE_OPENAI_SORA_DEPLOYMENT_NAME` are configured
 
-2. **"Failed to generate/edit images"**
-   - Verify your API keys and deployment names
-   - Check if you have access to both APIs
+2. **"Failed to generate/edit images or videos"**
+   - Verify your API keys and deployment names for each service
+   - Check if you have access to all required APIs (GPT Image, GPT-4o, Sora)
    - Ensure your Azure subscription has sufficient credits
+   - For Sora: Verify you have preview access to the Sora model
 
 3. **"PowerPoint generation failed"**
    - **Service Not Running**: Ensure the PowerPoint service is running on the configured port
@@ -350,7 +391,8 @@ Azure OpenAI services have rate limits:
 
 | Feature | Description | Page |
 |---------|-------------|------|
-| **Logo Generation** | AI-powered logo creation from business descriptions | `/` |
+| **Image Generation** | AI-powered image creation from text descriptions | `/` |
+| **Video Generation** | AI-powered video creation using Sora model | `/` |
 | **Multi-Image Analysis** | GPT-4o vision analysis for presentation content | `/analyze` |
 | **Batch Editing** | Edit multiple images simultaneously | `/edit` |
 | **Iterative Editing** | Sequential editing with history tracking | `/iterative` |
