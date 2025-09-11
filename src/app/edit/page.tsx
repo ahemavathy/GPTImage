@@ -342,7 +342,7 @@ export default function EditImagePage() {
 
           {/* Edit Prompt */}
           <div className="mt-6">
-            <label htmlFor="edit-prompt" className="block text-lg font-semibold text-gray-700 mb-4">
+            <label htmlFor="edit-prompt" className="block text-lg font-semibold text-gray-800 mb-3">
               Describe Your Edit
             </label>
             <textarea
@@ -350,27 +350,27 @@ export default function EditImagePage() {
               value={editPrompt}
               onChange={(e) => setEditPrompt(e.target.value)}
               placeholder="e.g., Change the background to a sunset, add sunglasses to the person, make the colors more vibrant"
-              className="w-full h-32 p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+              className="w-full h-32 p-4 border-2 border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all text-gray-900 placeholder-gray-500 bg-white"
               disabled={isEditing}
             />
           </div>
 
           {/* Number of Images */}
           <div className="mt-6">
-            <label htmlFor="numberOfImages" className="block text-lg font-semibold text-gray-700 mb-4">
+            <label htmlFor="numberOfImages" className="block text-lg font-semibold text-gray-800 mb-3">
               Number of Images to Generate
             </label>
             <select
               id="numberOfImages"
               value={numberOfImages}
               onChange={(e) => setNumberOfImages(parseInt(e.target.value))}
-              className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none bg-white"
+              className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all text-gray-900 bg-white"
               disabled={isEditing}
             >
-              <option value={1}>1 Image</option>
-              <option value={2}>2 Images</option>
-              <option value={3}>3 Images</option>
-              <option value={4}>4 Images</option>
+              <option value={1} className="text-gray-900">1 Image</option>
+              <option value={2} className="text-gray-900">2 Images</option>
+              <option value={3} className="text-gray-900">3 Images</option>
+              <option value={4} className="text-gray-900">4 Images</option>
             </select>
             <p className="text-sm text-gray-600 mt-2">
               Generate multiple variations of your edited image

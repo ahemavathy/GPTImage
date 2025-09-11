@@ -468,14 +468,14 @@ export default function IterativeEditPage() {
                 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-800 mb-2">
                       Edit Instruction
                     </label>
                     <textarea
                       value={editPrompt}
                       onChange={(e) => setEditPrompt(e.target.value)}
                       placeholder="e.g., Change the background to a sunset, add sunglasses, make it more colorful..."
-                      className="w-full h-24 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm"
+                      className="w-full h-24 p-3 border-2 border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all text-gray-900 placeholder-gray-500 bg-white text-sm"
                       disabled={isEditing}
                     />
                   </div>

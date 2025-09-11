@@ -623,7 +623,7 @@ export default function ImageAnalysisPage() {
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
                 placeholder="I want to create a compelling presentation that highlights the new air fryer's sophistication and strengthens our brand's positioning as a premium kitchen appliance."
-                className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none bg-white text-gray-900 placeholder-gray-500"
                 aria-describedby="guidelines-help"
                 required
               />
@@ -738,7 +738,7 @@ export default function ImageAnalysisPage() {
                     <textarea
                       value={editableContent}
                       onChange={(e) => setEditableContent(e.target.value)}
-                      className="w-full h-80 p-4 border-0 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none font-mono text-sm leading-relaxed"
+                      className="w-full h-80 p-4 border-0 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none font-mono text-sm leading-relaxed bg-white text-gray-900 placeholder-gray-500"
                       placeholder="Generated slide content will appear here for editing..."
                     />
                   </div>
