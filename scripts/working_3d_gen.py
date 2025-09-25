@@ -31,6 +31,9 @@ def generate_3d_with_frogleo(image_url="https://raw.githubusercontent.com/gradio
         print(f"Generating 3D model from: {image_url}")
         print("This may take 1-3 minutes...")
         
+        # Record start time
+        start_time = time.time()
+        
         # Call the correct API endpoint with proper parameters
         result = client.predict(
             image=handle_file(image_url),     # Image input
@@ -44,7 +47,10 @@ def generate_3d_with_frogleo(image_url="https://raw.githubusercontent.com/gradio
             api_name="/gen_shape"            # Correct API endpoint
         )
         
-        print("3D model generated successfully!")
+        # Calculate and print generation time
+        end_time = time.time()
+        generation_time = end_time - start_time
+        print(f"3D model generated successfully in {generation_time:.2f} seconds ({generation_time/60:.2f} minutes)!")
         print(f"Result structure: {type(result)} with {len(result) if hasattr(result, '__len__') else 'unknown'} elements")
         
         # Result format: (output, download, glb_path, obj_path)
@@ -83,6 +89,9 @@ def generate_pixel_3d(image_url="https://raw.githubusercontent.com/gradio-app/gr
         print(f"📡 Generating pixel 3D model from: {image_url}")
         print("⏳ This may take 1-2 minutes...")
         
+        # Record start time
+        start_time = time.time()
+        
         # Call the pixel STL generation endpoint
         result = client.predict(
             upload_image=handle_file(image_url),  # Image input
@@ -91,7 +100,10 @@ def generate_pixel_3d(image_url="https://raw.githubusercontent.com/gradio-app/gr
             api_name="/generate_pixel_stl"        # Correct API endpoint
         )
         
-        print("✅ Pixel 3D model generated successfully!")
+        # Calculate and print generation time
+        end_time = time.time()
+        generation_time = end_time - start_time
+        print(f"✅ Pixel 3D model generated successfully in {generation_time:.2f} seconds ({generation_time/60:.2f} minutes)!")
         print(f"📝 Result structure: {type(result)} with {len(result) if hasattr(result, '__len__') else 'unknown'} elements")
         
         # Result format: (color1_stl, color2_stl, ..., color8_stl, status)
@@ -156,5 +168,5 @@ if __name__ == "__main__":
     else:
         print("\nFailed to generate 3D model.")
         print("Try with --pixel flag for pixel art style:")
-        print(f"   python working_3d_gen.py {image_url} --pixel")
+        print(f"   python scripts/working_3d_gen.py {image_url} --pixel")
         sys.exit(1)

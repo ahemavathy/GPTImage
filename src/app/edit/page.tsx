@@ -170,7 +170,7 @@ export default function EditImagePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Navigation Bar */}
       <Navigation />
 

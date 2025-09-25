@@ -62,7 +62,7 @@ async function generateWith3DFrogleo(
     }
     
     // Use the working Python script with gradio_client
-    const pythonCommand = `python working_3d_gen.py "${imageArgument}"`
+    const pythonCommand = `python scripts/working_3d_gen.py "${imageArgument}"`
     console.log(`Command: ${pythonCommand}`)
     
     const { stdout, stderr } = await execAsync(pythonCommand, {

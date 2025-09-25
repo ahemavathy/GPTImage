@@ -1,51 +1,55 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Sparkles, Edit3, Image, Brush, BarChart3 } from 'lucide-react'
+import { Sparkles, Edit3, Image, Brush, BarChart3, TrendingUp, Menu, X } from 'lucide-react'
 
 interface NavItem {
   href: string
   label: string
   icon: React.ComponentType<{ className?: string }>
-  color: string
 }
 
 const navItems: NavItem[] = [
   {
     href: '/',
     label: 'Generate',
-    icon: Sparkles,
-    color: 'indigo'
+    icon: Sparkles
   },
   {
     href: '/edit',
     label: 'Edit',
-    icon: Edit3,
-    color: 'purple'
+    icon: Edit3
   },
   {
     href: '/iterative',
     label: 'Iterate',
-    icon: BarChart3,
-    color: 'blue'
+    icon: BarChart3
   },
   {
     href: '/analyze',
     label: 'Share',
-    icon: Image,
-    color: 'green'
+    icon: Image
+  },
+  {
+    href: '/scoring',
+    label: 'Score',
+    icon: TrendingUp
   }
 ]
 
 export default function Navigation() {
   const pathname = usePathname()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  const getNavItemStyles = (item: NavItem, isActive: boolean) => {
+  const getNavItemStyles = (isActive: boolean) => {
+    const baseClasses = 'flex items-center px-4 py-2 rounded-lg font-medium transition-colors'
+    
     if (isActive) {
-      return `flex items-center px-4 py-2 rounded-lg text-${item.color}-600 bg-${item.color}-50 font-medium transition-colors`
+      return `${baseClasses} text-blue-600 bg-blue-50`
     }
-    return `flex items-center px-4 py-2 rounded-lg text-gray-700 hover:text-${item.color}-600 hover:bg-${item.color}-50 font-medium transition-colors`
+    return `${baseClasses} text-gray-700 hover:text-blue-600 hover:bg-blue-50`
   }
 
   return (
@@ -68,7 +72,7 @@ export default function Navigation() {
                 <Link 
                   key={item.href}
                   href={item.href} 
-                  className={getNavItemStyles(item, isActive)}
+                  className={getNavItemStyles(isActive)}
                 >
                   <Icon className="w-4 h-4 mr-2" />
                   {item.label}
@@ -79,13 +83,42 @@ export default function Navigation() {
 
           {/* Mobile menu button */}
           <div className="md:hidden">
-            <button className="text-gray-700 hover:text-indigo-600 p-2">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="text-gray-700 hover:text-indigo-600 p-2"
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
             </button>
           </div>
         </div>
+
+        {/* Mobile menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t">
+            <div className="px-2 pt-2 pb-3 space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const isActive = pathname === item.href
+                
+                return (
+                  <Link 
+                    key={item.href}
+                    href={item.href} 
+                    className={getNavItemStyles(isActive)}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Icon className="w-4 h-4 mr-2" />
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   )

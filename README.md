@@ -1,6 +1,20 @@
 # AI Content Generation Platform
 
-A comprehensive web application that combines AI-powered logo generation, video creation, image editing, and PowerPoint presentation creation using Azure OpenAI services. Create professional logos, generate videos with Sora, edit images with AI, analyze multiple images, and generate compelling presentations - all in one platform.
+A comprehensive web application that combines AI-powered logo generation, 3D m2. **Install Python Dependencies (for Image Scoring)**
+
+```bash
+# Install Python requirements for BLIP-based scoring
+pip install -r requirements.txt
+```
+
+3. **Configure Environment Variables**
+
+1. Copy the example environment file:
+```bash
+copy .env.example .env.local
+```
+
+2. Edit `.env.local` and add your Azure OpenAI credentials:ation, image editing, and PowerPoint presentation creation using Azure OpenAI services and Hugging Face Spaces. Create professional logos, generate 3D models from images, edit images with AI, analyze multiple images, and generate compelling presentations - all in one platform.
 
 ## 🚀 Features
 
@@ -10,12 +24,21 @@ A comprehensive web application that combines AI-powered logo generation, video 
 - Professional, business-ready results
 - One-click individual downloads
 
+### 🧊 **3D Model Generation**
+- **NEW**: Generate 3D models from images using Hugging Face Spaces (frogleo/Image-to-3D)
+- Upload any image to create 3D mesh files (GLB/OBJ formats)
+- Interactive 3D preview in the browser
+- Download generated 3D models for use in other applications
+- Authenticated Hugging Face token support for enhanced performance
+- Timing reports for generation duration tracking
+
 ### 🎬 **AI Video Generation with Sora**
 - **NEW**: Generate videos using Azure OpenAI's Sora model
 - Create short video clips (3-15 seconds) from text descriptions
 - Multiple resolution options (480x480, 1280x720, 1920x1080)
 - Realistic and imaginative video scenes
 - Download generated videos in MP4 format
+- Professional video quality with AI-powered content creation
 
 ### 🖼️ **Advanced Image Editing**
 - **Batch Editing**: Edit multiple images simultaneously
@@ -30,6 +53,13 @@ A comprehensive web application that combines AI-powered logo generation, video 
 - Editable JSON content for customization
 - PowerPoint file generation and download
 - Copy-formatted content for API usage
+
+### 📊 **AI-Powered Image Quality Scoring**
+- **BLIP-based Similarity Scoring**: Evaluate how well generated images align with text prompts
+- **Caption Generation Analysis**: BLIP generates captions from images and compares with prompts
+- **Visual Score Indicators**: Color-coded scoring with detailed explanations
+- **Real-time Processing**: Instant feedback on image-prompt alignment
+- **Score Categories**: Excellent (80-100%), Good (60-80%), Fair (40-60%), Poor (0-40%)
 
 ### 🎯 **User Experience**
 - **Responsive Design**: Perfect on desktop and mobile
@@ -53,6 +83,8 @@ Before running this application, you need:
 3. **API Access**: 
    - GPT Image API access (limited - apply [here](https://aka.ms/oai/gptimage1access))
    - GPT-4o Vision API access
+   - Sora Model API access (requires preview access from Azure OpenAI)
+   - Hugging Face account and token (recommended for 3D generation)
 4. **PowerPoint Generator Service** (Required for PowerPoint features):
    - The PowerPoint generation functionality requires a separate service
    - Download and run the PowerPoint service from: [https://github.com/ahemavathy/Powerpoint](https://github.com/ahemavathy/Powerpoint)
@@ -61,10 +93,10 @@ Before running this application, you need:
 
 ## 🏗️ Application Structure
 
-The platform consists of five main sections:
+The platform consists of six main sections:
 
 ### 🏠 **Home - Content Generation** (`/`)
-Generate professional logos and images from business descriptions, or create videos using the Sora model
+Generate professional logos, images, 3D models, and videos from descriptions or uploaded images
 
 ### 📊 **Analyze - PPT Generation** (`/analyze`)
 Upload images, analyze with GPT-4o, and create PowerPoint presentations
@@ -77,6 +109,9 @@ Advanced editing workflow with history tracking and mask support
 
 ### 🎨 **Mask Editor** (`/mask`)
 Create precise editing masks with canvas-based tools
+
+### 📊 **Scoring - Image Quality Assessment** (`/scoring`)
+Evaluate image-prompt alignment using advanced BLIP-based semantic similarity scoring
 
 ## Setup Instructions
 
@@ -111,16 +146,19 @@ AZURE_OPENAI_GPT4O_ENDPOINT=https://your-gpt4o-resource.openai.azure.com
 AZURE_OPENAI_GPT4O_API_KEY=your_gpt4o_api_key_here
 AZURE_OPENAI_GPT4O_DEPLOYMENT_NAME=your_gpt4o_deployment_name
 
-# Azure OpenAI Sora API (for video generation - separate resource)
-AZURE_OPENAI_SORA_ENDPOINT=https://your-sora-resource.openai.azure.com
-AZURE_OPENAI_SORA_API_KEY=your_sora_api_key_here
-AZURE_OPENAI_SORA_DEPLOYMENT_NAME=your_sora_deployment_name
-
 # GPT-4o System Prompt (configurable)
 AZURE_OPENAI_GPT4O_SYSTEM_PROMPT="Your system prompt for presentation generation..."
 
 # PowerPoint Generator Service (if running on different port)
 POWERPOINT_API_BASE_URL=http://localhost:5000
+
+# Azure OpenAI Sora API (for video generation - separate resource)
+AZURE_OPENAI_SORA_ENDPOINT=https://your-sora-resource.openai.azure.com
+AZURE_OPENAI_SORA_API_KEY=your_sora_api_key_here
+AZURE_OPENAI_SORA_DEPLOYMENT_NAME=your_sora_deployment_name
+
+# Hugging Face Token (for 3D model generation)
+HUGGINGFACE_HUB_TOKEN=your_hugging_face_token_here
 ```
 
 ### 3. Set Up PowerPoint Service (Required for PowerPoint Features)
@@ -141,7 +179,7 @@ cd Powerpoint
 
 **Note**: If you run the PowerPoint service on a different port, update the `POWERPOINT_API_BASE_URL` in your `.env.local` file accordingly.
 
-### 4. Run the GPTImage Application
+### 5. Run the GPTImage Application
 
 ```bash
 # Development mode
@@ -154,21 +192,29 @@ npm start
 
 The application will be available at `http://localhost:3000`
 
+**Note**: The image scoring feature requires Python dependencies. If you encounter scoring errors, ensure you've installed the requirements: `pip install -r requirements.txt`
+
 ## 📖 How to Use
 
-### 🏠 Logo & Video Generation
+### 🏠 Logo & Content Generation
 
 1. **Navigate to Home**: The main page (`/`) for content generation
-2. **Choose Content Type**: Toggle between "Generate Images" and "Generate Video (Sora)"
+2. **Choose Content Type**: Toggle between "Generate Images", "Generate 3D Model", and "Generate Video (Sora)"
 
-#### For Image Generation:
-2. **Enter Description**: Describe your image with details about:
-   - Type of content and style
-   - Preferred colors and composition
-   - Target audience or use case
-3. **Set Image Count**: Choose how many variations to generate (1-4)
-4. **Generate**: Click "Generate Images" and wait for AI processing
-5. **Download**: Download individual images
+#### For Logo/Image Generation:
+2. **Enter Business Description**: Describe your business with details about:
+   - Type of business and industry
+   - Preferred colors and style
+   - Target audience
+3. **Set Image Count**: Choose how many logo variations to generate (1-10)
+4. **Generate**: Click "Generate Logo" and wait for AI processing
+5. **Download**: Download individual logos or all at once
+
+#### For 3D Model Generation:
+2. **Upload Image**: Select an image file to convert into a 3D model
+3. **Generate**: Click "Generate 3D Model" and wait for processing (1-3 minutes)
+4. **Preview**: View the interactive 3D model in your browser
+5. **Download**: Download the generated 3D model files (GLB/OBJ formats)
 
 #### For Video Generation:
 2. **Enter Video Concept**: Describe your video scene in detail:
@@ -219,13 +265,32 @@ The application will be available at `http://localhost:3000`
 5. **Create Mask**: Paint areas to be edited (black) or kept (white)
 6. **Download Mask**: Save your custom mask for use in editing
 
+### 📊 Image Quality Scoring
+
+1. **Navigate to Scoring**: Go to `/scoring` page
+2. **Upload Image**: Select an AI-generated image to evaluate
+3. **Enter Prompt**: Input the original text prompt used to generate the image
+4. **Score Image**: Click "Score Image Quality" to analyze alignment
+5. **View Results**: Get detailed BLIP similarity score with explanations:
+   - **Score Breakdown**: Numerical score (0-1) and percentage
+   - **Quality Category**: Excellent, Good, Fair, or Poor rating
+   - **Visual Indicators**: Color-coded progress bars and badges
+   - **Processing Details**: Image dimensions and processing time
+6. **Interpretation Guide**: Use the built-in score interpretation chart
+7. **Multiple Tests**: Clear and test different image-prompt combinations
+
 ## 💡 Example Prompts
 
-### Image Generation
+### Logo Generation
 - "Modern tech startup focused on sustainable energy solutions, minimalist design, green and blue colors"
 - "Luxury restaurant specializing in Italian cuisine, elegant and sophisticated style, gold and black colors"
 - "Fitness gym targeting young professionals, bold and energetic design, red and black colors"
 - "Eco-friendly cleaning products company, nature-inspired, green and white palette"
+
+### PPT Generation Guidelines
+- "Create a compelling presentation that highlights our new air fryer's sophistication and strengthens our brand's positioning as a premium kitchen appliance"
+- "Develop a professional pitch deck for our sustainable fashion startup targeting eco-conscious millennials"
+- "Generate slides for a quarterly business review focusing on growth metrics and future opportunities"
 
 ### Video Generation (Sora)
 - "A cat playing piano in a jazz bar with warm, moody lighting"
@@ -235,10 +300,12 @@ The application will be available at `http://localhost:3000`
 - "Ocean waves crashing against rocks on a cliff during golden hour"
 - "A chef preparing a gourmet dish in a professional kitchen"
 
-### PPT Generation Guidelines
-- "Create a compelling presentation that highlights our new air fryer's sophistication and strengthens our brand's positioning as a premium kitchen appliance"
-- "Develop a professional pitch deck for our sustainable fashion startup targeting eco-conscious millennials"
-- "Generate slides for a quarterly business review focusing on growth metrics and future opportunities"
+### 3D Model Generation
+- Product photos: sneakers, furniture, electronics, toys
+- Character images: people, animals, cartoon characters
+- Objects: vehicles, buildings, sculptures, logos
+- Artwork: paintings, sketches, digital art
+- Natural objects: fruits, plants, rocks, shells
 
 ### Image Editing
 - "Change the background to a sunset with mountains"
@@ -249,6 +316,15 @@ The application will be available at `http://localhost:3000`
 - "Replace the sky with a starry night" (with mask covering sky area)
 - "Change only the shirt color to red" (with mask covering shirt area)
 - "Add modern architectural elements to the building facade"
+
+### Image Quality Scoring
+**Testing Prompts with Generated Images:**
+- "professional business logo" → Test with corporate logo images
+- "modern tech startup logo" → Evaluate with minimalist tech designs  
+- "luxury restaurant branding" → Score against elegant dining imagery
+- "eco-friendly product design" → Assess green/sustainable themed images
+- "fitness gym promotional image" → Rate energetic workout visuals
+- "coffee shop atmosphere" → Score cozy cafe environment photos
 
 ## Azure Configuration
 
@@ -278,6 +354,8 @@ The application uses the Azure OpenAI Image Generation API with these parameters
 - **APIs**: 
   - Azure OpenAI GPT Image API (gpt-image-1)
   - Azure OpenAI GPT-4o Vision API
+  - Azure OpenAI Sora API (video generation)
+  - Hugging Face Spaces API (frogleo/Image-to-3D)
   - External PowerPoint Generator API
 - **State Management**: React Hooks
 - **File Handling**: FormData, Buffer processing
@@ -290,15 +368,22 @@ GPTImage/
 ├── .env.example                   # Environment template
 ├── ARCHITECTURE.md               # Detailed architecture documentation
 ├── README.md                     # This file
+├── requirements.txt              # Python dependencies for image scoring
 ├── package.json                  # Dependencies and scripts
 ├── next.config.js               # Next.js configuration
 ├── tailwind.config.js           # Tailwind CSS configuration
 ├── tsconfig.json                # TypeScript configuration
+├── scripts/
+│   ├── blip_scorer.py           # BLIP-based image scoring script
+│   ├── clip_scorer.py           # CLIP-based scoring (legacy/comparison)
+│   ├── working_3d_gen.py        # 3D model generation script
+│   └── test_api_route.py        # API testing utilities
 ├── .github/
 │   └── copilot-instructions.md  # AI assistant guidelines
 ├── public/
-│   ├── generated-logos/        # Generated logo storage
-│   ├── generated-videos/       # Generated video storage (NEW)
+│   ├── generated-images/        # Generated logo storage
+│   ├── generated-videos/       # Generated video storage
+│   ├── generated-3d-models/    # Generated 3D model storage
 │   ├── edited-images/          # Edited image storage
 │   └── .gitkeep                # Preserve directory structure
 └── src/
@@ -316,15 +401,21 @@ GPTImage/
         │   └── page.tsx         # Sequential editing workflow
         ├── mask/
         │   └── page.tsx         # Canvas-based mask editor
+        ├── scoring/
+        │   └── page.tsx         # Image quality scoring interface
         └── api/
             ├── generate-logo/
             │   └── route.ts     # Logo generation API
             ├── generate-video/
-            │   └── route.ts     # Video generation API (NEW)
+            │   └── route.ts     # Video generation API
+            ├── generate-3d/
+            │   └── route.ts     # 3D model generation API
             ├── analyze-images/
             │   └── route.ts     # Image analysis API
-            └── edit-image/
-                └── route.ts     # Image editing API
+            ├── edit-image/
+            │   └── route.ts     # Image editing API
+            └── score-image/
+                └── route.ts     # BLIP-based image scoring API
 ```
 
 ## 🔧 Troubleshooting
@@ -333,15 +424,13 @@ GPTImage/
 
 1. **"Azure OpenAI configuration is missing"**
    - Ensure all environment variables are set in `.env.local`
-   - Check that GPT Image, GPT-4o, and Sora resources are active
+   - Check that both GPT Image and GPT-4o resources are active
    - Verify deployment names match your Azure deployments
-   - For Sora: Ensure `AZURE_OPENAI_SORA_ENDPOINT`, `AZURE_OPENAI_SORA_API_KEY`, and `AZURE_OPENAI_SORA_DEPLOYMENT_NAME` are configured
 
-2. **"Failed to generate/edit images or videos"**
-   - Verify your API keys and deployment names for each service
-   - Check if you have access to all required APIs (GPT Image, GPT-4o, Sora)
+2. **"Failed to generate/edit images"**
+   - Verify your API keys and deployment names
+   - Check if you have access to both APIs
    - Ensure your Azure subscription has sufficient credits
-   - For Sora: Verify you have preview access to the Sora model
 
 3. **"PowerPoint generation failed"**
    - **Service Not Running**: Ensure the PowerPoint service is running on the configured port
@@ -386,17 +475,20 @@ Azure OpenAI services have rate limits:
    - Analyze images and create presentations on `/analyze`
    - Edit images on `/edit` or `/iterative`
    - Create masks on `/mask`
+   - Score image quality on `/scoring`
 
 ## 🎯 Key Features Summary
 
 | Feature | Description | Page |
 |---------|-------------|------|
-| **Image Generation** | AI-powered image creation from text descriptions | `/` |
+| **Logo Generation** | AI-powered logo creation from business descriptions | `/` |
 | **Video Generation** | AI-powered video creation using Sora model | `/` |
+| **3D Model Generation** | Generate 3D models (GLB/OBJ) from images | `/` |
 | **Multi-Image Analysis** | GPT-4o vision analysis for presentation content | `/analyze` |
 | **Batch Editing** | Edit multiple images simultaneously | `/edit` |
 | **Iterative Editing** | Sequential editing with history tracking | `/iterative` |
 | **Mask Editor** | Create precise editing masks | `/mask` |
+| **Image Quality Scoring** | BLIP-based semantic similarity assessment | `/scoring` |
 | **PowerPoint Generation** | Convert analysis to downloadable presentations | `/analyze` |
 
 ## 📚 Additional Resources

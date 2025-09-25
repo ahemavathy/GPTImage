@@ -1,0 +1,17 @@
+# Python requirements for BLIP-based image scoring
+# Install with: pip install -r requirements.txt
+
+# Core PyTorch dependencies (let pip resolve compatible versions)
+torch
+torchvision
+
+# BLIP and transformers for image-text similarity
+transformers>=4.20.0        # For BLIP and other Hugging Face models
+accelerate>=0.20.0          # For faster model loading
+
+# Image processing and utilities
+Pillow>=9.0.0
+numpy>=1.21.0
+
+# Additional dependencies for gradio client (for 3D generation)
+gradio-client>=0.7.0

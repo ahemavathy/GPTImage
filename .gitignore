@@ -44,9 +44,25 @@ public/edited-images/*.png
 public/edited-images/*.jpg
 public/edited-images/*.jpeg
 
+# Generated videos (keep structure but ignore content)
+public/generated-videos/*.mp4
+public/generated-videos/*.mov
+public/generated-videos/*.avi
+public/generated-videos/*.mkv
+
+# Generated 3D models (keep structure but ignore content)
+public/generated-3d-models/*.glb
+public/generated-3d-models/*.gltf
+public/generated-3d-models/*.obj
+public/generated-3d-models/*.mtl
+public/generated-3d-models/*.ply
+public/generated-3d-models/*.stl
+
 # Keep directory structure with .gitkeep files
 !public/generated-logos/.gitkeep
 !public/edited-images/.gitkeep
+!public/generated-videos/.gitkeep
+!public/generated-3d-models/.gitkeep
 
 # PowerPoint temp files
 *.tmp
