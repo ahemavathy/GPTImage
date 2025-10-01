@@ -3,7 +3,25 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Zap, TrendingUp, Clock, Image as ImageIcon } from 'lucide-react';
 import { ScoringResponse } from '@/types/scoring';
-import { formatScoreAsPercentage, getScoreColor, getScoreDescription } from '@/lib/scoringUtils';
+
+// Inline utility functions for Azure AI Vision scoring
+const formatScoreAsPercentage = (score: number, decimals: number = 0): string => {
+  return `${(score * 100).toFixed(decimals)}%`;
+};
+
+const getScoreColor = (score: number): string => {
+  if (score >= 0.95) return '#10b981'; // green-500 - Excellent
+  if (score >= 0.9) return '#3b82f6'; // blue-500 - Good
+  if (score >= 0.7) return '#f59e0b'; // amber-500 - Fair
+  return '#ef4444'; // red-500 - Poor
+};
+
+const getScoreDescription = (score: number): string => {
+  if (score >= 0.95) return 'Excellent semantic match - nearly identical concepts';
+  if (score >= 0.9) return 'Good semantic alignment - very similar concepts';
+  if (score >= 0.7) return 'Fair semantic alignment - moderately related concepts';
+  return 'Poor semantic alignment - distantly related or unrelated concepts';
+};
 
 /**
  * ImageScorer Component
@@ -100,8 +118,8 @@ export default function ImageScorer() {
           <h2 className="text-3xl font-bold text-gray-900">Image Quality Scorer</h2>
         </div>
         <p className="text-gray-600 max-w-2xl">
-          Upload an image and its corresponding prompt to evaluate how well they align using 
-          BLIP-based semantic similarity scoring. Perfect for assessing AI-generated images.
+          Upload an image and prompt to get two different similarity scores: one based on 
+          AI-generated captions, and another using direct image-text comparison.
         </p>
       </div>
 
@@ -214,33 +232,89 @@ export default function ImageScorer() {
 
           {scoringResult?.success && scoringResult.scores && (
             <div className="space-y-4">
-              {/* BLIP Similarity Score */}
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
+              {/* Azure AI Vision Similarity Score */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-lg font-semibold text-gray-900">BLIP Similarity</h4>
+                  <h4 className="text-lg font-semibold text-gray-900">Text Embedding Similarity Score</h4>
                   <div className="flex items-center">
                     <div 
                       className="w-3 h-3 rounded-full mr-2"
-                      style={{ backgroundColor: getScoreColor(scoringResult.scores.blipSimilarity) }}
+                      style={{ backgroundColor: getScoreColor(scoringResult.scores.azureVisionSimilarity) }}
                     ></div>
-                    <span className="text-2xl font-bold" style={{ color: getScoreColor(scoringResult.scores.blipSimilarity) }}>
-                      {formatScoreAsPercentage(scoringResult.scores.blipSimilarity)}
+                    <span className="text-2xl font-bold" style={{ color: getScoreColor(scoringResult.scores.azureVisionSimilarity) }}>
+                      {formatScoreAsPercentage(scoringResult.scores.azureVisionSimilarity)}
                     </span>
                   </div>
                 </div>
                 <p className="text-gray-600 text-sm mb-2">
-                  {getScoreDescription(scoringResult.scores.blipSimilarity)}
+                  {getScoreDescription(scoringResult.scores.azureVisionSimilarity)}
                 </p>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
                   <div 
                     className="h-2 rounded-full transition-all duration-500"
                     style={{ 
-                      width: `${scoringResult.scores.blipSimilarity * 100}%`,
-                      backgroundColor: getScoreColor(scoringResult.scores.blipSimilarity)
+                      width: `${scoringResult.scores.azureVisionSimilarity * 100}%`,
+                      backgroundColor: getScoreColor(scoringResult.scores.azureVisionSimilarity)
                     }}
                   ></div>
                 </div>
+                
+                {/* Generated Caption Display */}
+                {scoringResult.azureVisionDetails?.generatedCaption && (
+                  <div className="bg-white bg-opacity-60 rounded-lg p-3 border border-blue-100">
+                    <h5 className="text-sm font-medium text-gray-700 mb-1">What Azure AI Vision sees:</h5>
+                    <p className="text-gray-900 text-sm italic">"{scoringResult.azureVisionDetails.generatedCaption}"</p>
+                    
+                    {/* Model details */}
+                    <div className="mt-2 text-xs text-gray-600 flex items-center justify-between">
+                      <span className="inline-flex items-center">
+                        <div className="w-2 h-2 bg-green-400 rounded-full mr-1"></div>
+                        AI Vision model - Caption confidence: {Math.round(scoringResult.azureVisionDetails.confidence * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
+
+              {/* Azure Computer Vision Multimodal Score */}
+              {scoringResult.scores.azureMultimodalSimilarity !== undefined && (
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-lg font-semibold text-gray-900">MM Embedding Similarity Score</h4>
+                    <div className="flex items-center">
+                      <div 
+                        className="w-3 h-3 rounded-full mr-2"
+                        style={{ backgroundColor: getScoreColor(scoringResult.scores.azureMultimodalSimilarity) }}
+                      ></div>
+                      <span className="text-2xl font-bold" style={{ color: getScoreColor(scoringResult.scores.azureMultimodalSimilarity) }}>
+                        {formatScoreAsPercentage(scoringResult.scores.azureMultimodalSimilarity)}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-2">
+                    {getScoreDescription(scoringResult.scores.azureMultimodalSimilarity)}
+                  </p>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                    <div 
+                      className="h-2 rounded-full transition-all duration-500"
+                      style={{ 
+                        width: `${scoringResult.scores.azureMultimodalSimilarity * 100}%`,
+                        backgroundColor: getScoreColor(scoringResult.scores.azureMultimodalSimilarity)
+                      }}
+                    ></div>
+                  </div>
+                  
+                  {/* Multimodal Method Details */}
+                  {scoringResult.multimodalDetails && (
+                    <div className="bg-white bg-opacity-60 rounded-lg p-3 border border-purple-100">
+                      <h5 className="text-sm font-medium text-gray-700 mb-1">Direct Image-Text Comparison:</h5>
+                      <p className="text-gray-900 text-sm mb-2">
+                        Uses Azure Computer Vision's multimodal embeddings to directly compare image content with text prompt in the same vector space.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Metadata */}
               {scoringResult.metadata && (
@@ -248,42 +322,47 @@ export default function ImageScorer() {
                   <h5 className="text-sm font-medium text-gray-700 mb-3">Processing Details</h5>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="flex items-center">
-                      <ImageIcon className="w-4 h-4 text-gray-400 mr-2" />
-                      <span className="text-gray-600">
-                        {scoringResult.metadata.imageSize.width} × {scoringResult.metadata.imageSize.height}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
                       <Clock className="w-4 h-4 text-gray-400 mr-2" />
                       <span className="text-gray-600">
                         {scoringResult.metadata.processingTime}ms
                       </span>
                     </div>
+                    {scoringResult.metadata.tokenUsage && (
+                      <div className="flex items-center">
+                        <span className="w-4 h-4 text-gray-400 mr-2 text-xs font-mono">T</span>
+                        <span className="text-gray-600">
+                          {scoringResult.metadata.tokenUsage.totalTokens} tokens
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* Score Interpretation */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h5 className="text-sm font-medium text-gray-700 mb-2">Score Interpretation</h5>
+                <h5 className="text-sm font-medium text-gray-700 mb-2">Cosine Similarity Interpretation</h5>
                 <div className="grid grid-cols-4 gap-2 text-xs">
                   <div className="text-center">
                     <div className="w-full bg-red-500 h-2 rounded mb-1"></div>
-                    <span className="text-gray-600">Poor<br/>0-40%</span>
+                    <span className="text-gray-600">Poor<br/>0-70%<br/>Unrelated</span>
                   </div>
                   <div className="text-center">
                     <div className="w-full bg-amber-500 h-2 rounded mb-1"></div>
-                    <span className="text-gray-600">Fair<br/>40-60%</span>
+                    <span className="text-gray-600">Fair<br/>70-90%<br/>Moderately related</span>
                   </div>
                   <div className="text-center">
                     <div className="w-full bg-blue-500 h-2 rounded mb-1"></div>
-                    <span className="text-gray-600">Good<br/>60-80%</span>
+                    <span className="text-gray-600">Good<br/>90-95%<br/>Very similar</span>
                   </div>
                   <div className="text-center">
                     <div className="w-full bg-green-500 h-2 rounded mb-1"></div>
-                    <span className="text-gray-600">Excellent<br/>80-100%</span>
+                    <span className="text-gray-600">Excellent<br/>95-100%<br/>Nearly identical</span>
                   </div>
                 </div>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  Scores reflect semantic similarity between concepts, not visual similarity
+                </p>
               </div>
             </div>
           )}

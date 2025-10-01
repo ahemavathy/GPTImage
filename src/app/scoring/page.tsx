@@ -6,7 +6,7 @@ import ImageScorer from '@/components/ImageScorer';
 /**
  * Image Scoring Test Page
  * 
- * A dedicated page for testing the BLIP-based image scoring system.
+ * A dedicated page for testing the Azure AI Vision-based image scoring system.
  * This page allows users to upload images and prompts to evaluate
  * the semantic alignment between generated images and their text descriptions.
  */
@@ -24,9 +24,8 @@ export default function ScoringPage() {
               Image Quality Scoring
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Evaluate how well your AI-generated images align with their text prompts using 
-              advanced BLIP-based semantic similarity scoring. BLIP generates captions from your images 
-              and compares them with your prompts for more intuitive and accurate scoring.
+              Test how well your generated images match their original text prompts with 
+              professional-grade AI analysis.
             </p>
           </div>
 

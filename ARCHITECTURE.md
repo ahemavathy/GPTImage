@@ -1,8 +1,8 @@
-# AI Image Generation App - Architecture Design
+# AI Content Generation Platform - Architecture Design
 
 ## 🏗️ System Overview
 
-The AI Image Generation App is a comprehensive Next.js application that provides multiple AI-powered image capabilities including logo generation, image analysis, iterative image editing, mask-based editing, and PowerPoint presentation creation. The application features a modern, responsive interface with advanced workflow capabilities.
+The AI Content Generation Platform is a comprehensive Next.js application that provides multiple AI-powered capabilities including logo generation, 3D model creation, video generation, image editing, enterprise-grade image quality scoring, image analysis, and PowerPoint presentation creation. The application features a modern, responsive interface with advanced workflow capabilities and Azure AI services integration for professional-grade content analysis.
 
 ## 📊 High-Level Architecture
 
@@ -13,12 +13,12 @@ The AI Image Generation App is a comprehensive Next.js application that provides
 │  Next.js Frontend (React 18 + TypeScript + Tailwind CSS)      │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │
 │  │   Home      │ │   Analyze   │ │    Edit     │ │  Iterative  │ │
-│  │   Page      │ │    Page     │ │    Page     │ │    Edit     │ │
+│  │(Generation) │ │    Page     │ │    Page     │ │    Edit     │ │
 │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘ │
-│  ┌─────────────┐ ┌─────────────┐                                 │
-│  │    Mask     │ │ Navigation  │                                 │
-│  │   Editor    │ │ Component   │                                 │
-│  └─────────────┘ └─────────────┘                                 │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐                 │
+│  │    Mask     │ │   Scoring   │ │ Navigation  │                 │
+│  │   Editor    │ │    Page     │ │ Component   │                 │
+│  └─────────────┘ └─────────────┘ └─────────────┘                 │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
@@ -26,21 +26,30 @@ The AI Image Generation App is a comprehensive Next.js application that provides
 │                        API Gateway Layer                        │
 ├─────────────────────────────────────────────────────────────────┤
 │              Next.js API Routes (/api/*)                       │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐                │
-│  │generate-logo│ │analyze-images│ │ edit-image  │                │
-│  │   /route.ts │ │  /route.ts   │ │  /route.ts  │                │
-│  └─────────────┘ └─────────────┘ └─────────────┘                │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │
+│  │generate-logo│ │analyze-images│ │ edit-image  │ │generate-3d  │ │
+│  │   /route.ts │ │  /route.ts   │ │  /route.ts  │ │  /route.ts  │ │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘ │
+│  ┌─────────────┐ ┌─────────────┐                                 │
+│  │generate-video│ │score-image  │                                 │
+│  │   /route.ts │ │  /route.ts   │                                 │
+│  └─────────────┘ └─────────────┘                                 │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                      External Services                          │
 ├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐ │
-│  │  Azure OpenAI   │    │  Azure OpenAI   │    │   PowerPoint    │ │
-│  │   GPT Image     │    │     GPT-4o      │    │   Generator     │ │
-│  │  (gpt-image-1)  │    │   (Vision)      │    │      API        │ │
-│  └─────────────────┘    └─────────────────┘    └─────────────────┘ │
+│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐     │
+│  │  Azure OpenAI   │ │  Azure OpenAI   │ │  Azure OpenAI   │     │
+│  │   GPT Image     │ │     GPT-4o      │ │      Sora       │     │
+│  │  (gpt-image-1)  │ │   (Vision)      │ │    (Video)      │     │
+│  └─────────────────┘ └─────────────────┘ └─────────────────┘     │
+│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐     │
+│  │ Hugging Face    │ │   PowerPoint    │ │   Python        │     │
+│  │    Spaces       │ │   Generator     │ │    Scripts      │     │
+│  │ (3D Generation) │ │      API        │ │ (Azure Vision)  │     │
+│  └─────────────────┘ └─────────────────┘ └─────────────────┘     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -50,11 +59,15 @@ The AI Image Generation App is a comprehensive Next.js application that provides
 
 #### **Main Pages:**
 - **Home Page** (`/src/app/page.tsx`)
-  - Logo/Image generation interface
+  - Multi-modal AI content generation interface
+  - Toggle between Logo/Image, 3D Model, and Video generation
   - Business description input with default content
-  - Multi-image generation support (configurable n images)
-  - Individual image download functionality
-  - Shared navigation component
+  - Multi-image generation support (configurable 1-10 images)
+  - 3D model generation from uploaded images (GLB/OBJ formats)
+  - Video generation using Azure OpenAI Sora model (3-15 seconds, multiple resolutions)
+  - Individual downloads and batch download functionality
+  - Interactive 3D model preview
+  - Video preview and playback
 
 - **Analyze Page** (`/src/app/analyze/page.tsx`)
   - Multi-image upload with drag & drop
@@ -83,6 +96,15 @@ The AI Image Generation App is a comprehensive Next.js application that provides
   - PNG mask validation and export
   - Adjustable brush sizes and tools
 
+- **Scoring Page** (`/src/app/scoring/page.tsx`)
+  - Azure AI Vision-based image quality assessment
+  - Upload image and corresponding text prompt
+  - Enterprise-grade semantic similarity scoring using AI Vision models
+  - Azure OpenAI embeddings for professional semantic analysis
+  - Visual score indicators with color-coded results
+  - Cosine similarity interpretation guide (Excellent 90-100%, Good 70-90%, Fair 50-70%, Poor 0-50%)
+  - Processing metadata display (image dimensions, processing time, model confidence)
+
 #### **Shared Components:**
 - **Navigation Component** (`/src/components/Navigation.tsx`)
   - Consistent navigation across all pages
@@ -110,14 +132,19 @@ The AI Image Generation App is a comprehensive Next.js application that provides
 ```typescript
 // Handles logo/image generation requests
 POST /api/generate-logo
-Body: FormData {
+Body: {
   businessDescription: string,
-  numberOfImages: number (configurable 1-10)
+  numberOfImages: number (configurable 1-4)
 }
-Response: {
-  images: Array<{url: string, fileName: string}>,
-  totalGenerated: number,
-  savedImages: string[]
+Response: 
+// Single image (numberOfImages = 1)
+{
+  url: string,
+  revisedPrompt: string
+}
+// Multiple images (numberOfImages > 1)
+{
+  images: Array<{url: string, revisedPrompt: string}>
 }
 ```
 
@@ -157,6 +184,75 @@ Response: {
 }
 ```
 
+**`/api/generate-3d`**
+```typescript
+// Handles 3D model generation from images
+POST /api/generate-3d
+Body: FormData {
+  image: File
+}
+Response: {
+  success: boolean,
+  modelUrl?: string,
+  fileName?: string,
+  processingTime?: number
+}
+```
+
+**`/api/generate-video`**
+```typescript
+// Handles video generation using Sora model
+POST /api/generate-video
+Body: {
+  prompt: string,
+  duration: number (3-15 seconds),
+  resolution: string ("480x480" | "1280x720" | "1920x1080")
+}
+Response: {
+  success: boolean,
+  videoUrl?: string,
+  fileName?: string,
+  duration?: number,
+  resolution?: string
+}
+```
+
+**`/api/score-image`**
+```typescript
+// Handles Azure AI Vision-based image quality scoring
+GET /api/score-image
+Response: {
+  status: string,
+  version: string,
+  supportedMetrics: string[],
+  models: string[]
+}
+
+POST /api/score-image
+Body: FormData {
+  image: File,
+  prompt: string
+}
+Response: {
+  success: boolean,
+  scores?: {
+    azureVisionSimilarity: number (0-1),
+    classificationAccuracy?: number
+  },
+  metadata?: {
+    imageSize: { width: number, height: number },
+    promptLength: number,
+    processingTime: number
+  },
+  azureVisionDetails?: {
+    generatedCaption: string,
+    confidence: number,
+    modelUsed: string
+  },
+  error?: string
+}
+```
+
 ### 3. External Service Integration
 
 #### **Azure OpenAI Services:**
@@ -175,6 +271,46 @@ Response: {
   - Configurable system prompts via environment variables
   - Advanced image understanding and content generation
   - Token usage tracking and optimization
+
+**Sora Video Generation API**
+- **Purpose**: AI-powered video generation from text descriptions
+- **Configuration**: Separate endpoint, API key, deployment for Sora model
+- **Features**:
+  - Text-to-video generation (3-15 second duration)
+  - Multiple resolution support (480x480, 1280x720, 1920x1080)
+  - MP4 video output format
+  - Realistic and imaginative scene generation
+
+#### **Hugging Face Spaces Integration:**
+
+**3D Model Generation (frogleo/Image-to-3D)**
+- **Purpose**: Generate 3D models from 2D images
+- **Configuration**: Optional Hugging Face token for enhanced performance
+- **Features**:
+  - Image-to-3D conversion using gradio_client
+  - GLB and OBJ format support
+  - Configurable timeout handling (5+ minutes for processing)
+  - Pixel art style support with command-line flags
+
+#### **Azure AI Services Integration:**
+
+**Azure AI Vision (Computer Vision)**
+- **Purpose**: Professional-grade image captioning and analysis using Azure AI Vision models
+- **Configuration**: Separate endpoint, API key for Computer Vision service
+- **Features**:
+  - Enterprise-grade image captioning with confidence scores
+  - Gender-neutral caption options
+  - Integration with Azure OpenAI embeddings for semantic similarity
+  - High accuracy and reliability for production use
+
+**Azure OpenAI Embeddings**
+- **Purpose**: Semantic similarity calculation using state-of-the-art language models
+- **Model**: text-embedding-ada-002 for high-quality vector representations
+- **Features**:
+  - Professional semantic understanding beyond simple word matching
+  - Cosine similarity calculation between high-dimensional vectors
+  - Handles context, synonyms, and nuanced meaning
+  - Consistent similarity scoring across all image captioning methods
 
 #### **PowerPoint Generator API**
 - **Endpoint**: Configurable via `POWERPOINT_API_BASE_URL` environment variable
@@ -201,9 +337,11 @@ Response: {
 - **Environment**: .env configuration
 
 ### **External Dependencies:**
-- **AI Services**: Azure OpenAI
+- **AI Services**: Azure OpenAI (GPT Image, GPT-4o, Sora, Embeddings), Azure AI Vision (Computer Vision)
+- **3D Generation**: Hugging Face Spaces (frogleo/Image-to-3D)
 - **Document Generation**: External PowerPoint API
 - **Image Processing**: Canvas API (client-side)
+- **Machine Learning**: Azure AI Vision models, Azure OpenAI text-embedding-ada-002
 
 ## 📁 Project Structure
 
@@ -218,17 +356,27 @@ GPTImage/
 ├── ARCHITECTURE.md              # This document
 ├── .github/
 │   └── copilot-instructions.md  # AI assistant guidelines
+├── scripts/
+│   ├── working_3d_gen.py        # 3D model generation script
+│   └── test_api_route.py        # API testing utilities
 ├── public/
-│   ├── generated-images/        # Generated logo storage
-│   ├── edited-images/          # Edited image storage
-│   └── .gitkeep                # Preserve directory structure
+│   ├── generated-logos/         # Generated logo storage
+│   ├── generated-videos/        # Generated video storage  
+│   ├── generated-3d-models/     # Generated 3D model storage
+│   ├── edited-images/           # Edited image storage
+│   └── .gitkeep                 # Preserve directory structure
 ├── src/
 │   ├── components/
-│   │   └── Navigation.tsx       # Shared navigation component
+│   │   ├── Navigation.tsx       # Shared navigation component
+│   │   └── ImageScorer.tsx      # Azure AI Vision scoring component
+│   ├── types/
+│   │   └── scoring.ts           # TypeScript interfaces for Azure Vision scoring
+│   ├── lib/
+│   │   └── scoringUtils.ts      # Scoring utility functions
 │   └── app/
 │       ├── globals.css          # Global styles
 │       ├── layout.tsx           # Root layout
-│       ├── page.tsx             # Home page (logo generation)
+│       ├── page.tsx             # Home page (multi-modal content generation)
 │       ├── analyze/
 │       │   └── page.tsx         # Multi-image analysis & PPT
 │       ├── edit/
@@ -237,13 +385,21 @@ GPTImage/
 │       │   └── page.tsx         # Sequential editing workflow
 │       ├── mask/
 │       │   └── page.tsx         # Canvas-based mask editor
+│       ├── scoring/
+│       │   └── page.tsx         # Image quality scoring interface
 │       └── api/
 │           ├── generate-logo/
 │           │   └── route.ts     # Logo generation API
+│           ├── generate-3d/
+│           │   └── route.ts     # 3D model generation API
+│           ├── generate-video/
+│           │   └── route.ts     # Video generation API
 │           ├── analyze-images/
 │           │   └── route.ts     # Image analysis API
-│           └── edit-image/
-│               └── route.ts     # Image editing API
+│           ├── edit-image/
+│           │   └── route.ts     # Image editing API
+│           └── score-image/
+│               └── route.ts     # Azure AI Vision-based image scoring API
 ```
 
 ## 🔐 Configuration Management
@@ -265,11 +421,44 @@ AZURE_OPENAI_GPT4O_DEPLOYMENT_NAME=gpt-4o-vision
 AZURE_OPENAI_GPT4O_SYSTEM_PROMPT=your-system-prompt
 ```
 
+**Azure OpenAI Sora (Video Generation):**
+```env
+AZURE_OPENAI_SORA_ENDPOINT=https://your-sora-resource.openai.azure.com/
+AZURE_OPENAI_SORA_API_KEY=your-sora-api-key
+AZURE_OPENAI_SORA_DEPLOYMENT_NAME=sora-model
+```
+
+**Azure AI Vision (Computer Vision):**
+```env
+AZURE_AI_VISION_ENDPOINT=https://your-computer-vision-resource.cognitiveservices.azure.com/
+AZURE_AI_VISION_API_KEY=your-computer-vision-api-key
+```
+
+**Hugging Face Integration:**
+```env
+HUGGINGFACE_HUB_TOKEN=your-hugging-face-token
+```
+
+**PowerPoint Generator Service:**
+```env
+POWERPOINT_API_BASE_URL=http://localhost:5000
+```
+
 ## 🚀 Data Flow
 
 ### **Logo Generation Flow:**
 ```
-User Input (Business Description + Number of Images) → Home Page → /api/generate-logo → Azure GPT Image → Multiple Images → Individual Downloads
+User Input (Business Description + Number of Images) → Home Page → /api/generate-logo → Azure GPT Image → Multiple Images → Individual/Batch Downloads
+```
+
+### **3D Model Generation Flow:**
+```
+Image Upload → Home Page → /api/generate-3d → Python Script → Hugging Face Spaces → GLB/OBJ Files → Interactive Preview → Download
+```
+
+### **Video Generation Flow:**
+```
+Text Prompt + Parameters (Duration, Resolution) → Home Page → /api/generate-video → Azure Sora API → MP4 Video → Preview → Download
 ```
 
 ### **Image Analysis Flow:**
@@ -285,6 +474,11 @@ Image Upload + Prompt + Number of Images → Edit Page → /api/edit-image → A
 ### **Iterative Editing Flow:**
 ```
 Image Upload → Iterative Page → Sequential Edits → Canvas History → Undo/Redo → Mask Application → Final Result
+```
+
+### **Image Quality Scoring Flow:**
+```
+Image Upload + Text Prompt → Scoring Page → /api/score-image → Azure AI Vision → Caption Generation → Azure OpenAI Embeddings → Semantic Similarity → Visual Score Display
 ```
 
 ### **PowerPoint Generation Flow:**
@@ -334,13 +528,17 @@ Images → PowerPoint API Upload → Edited Content → /create-from-template �
 
 ### **Planned Features:**
 1. **User Authentication**: User accounts and session management
-2. **Image Gallery**: Save and manage generated/edited images
+2. **Content Gallery**: Save and manage generated images, videos, 3D models
 3. **Template System**: Pre-built presentation templates
 4. **Batch Processing**: Multiple operations in queue
 5. **Analytics Dashboard**: Usage statistics and insights
 6. **Mobile App**: React Native companion app
 7. **Advanced Editing**: Layer-based editing with multiple masks
 8. **AI Improvements**: Fine-tuned models for specific use cases
+9. **Scoring History**: Track and analyze scoring results over time
+10. **Advanced 3D Features**: Texture mapping, animation support
+11. **Video Enhancement**: Longer videos, custom styles, post-processing
+12. **Multi-Model Scoring**: Combine multiple AI models for better accuracy
 
 ### **Technical Improvements:**
 1. **Database Integration**: PostgreSQL/MongoDB for persistence
@@ -381,15 +579,18 @@ Images → PowerPoint API Upload → Edited Content → /create-from-template �
 
 ## 🎯 Key Architectural Strengths
 
-1. **Modular Design**: Clear separation of concerns with organized file structure
-2. **Scalable Structure**: Easy to extend and maintain with shared components
-3. **Type Safety**: Full TypeScript implementation with proper interfaces
-4. **Modern Stack**: Latest React and Next.js features with App Router
-5. **User Experience**: Responsive, intuitive interface with accessibility features
-6. **API Integration**: Clean external service integration with proper error handling
-7. **Configuration**: Flexible environment management with separate service configs
-8. **Performance**: Optimized image processing and efficient state management
-9. **Workflow Support**: Sequential and batch editing capabilities
-10. **Developer Experience**: Well-documented code with comprehensive architecture
+1. **Multi-Modal AI Integration**: Comprehensive support for images, videos, 3D models, and presentations
+2. **Modular Design**: Clear separation of concerns with organized file structure including Python utilities
+3. **Scalable Structure**: Easy to extend and maintain with shared components and utilities
+4. **Type Safety**: Full TypeScript implementation with proper interfaces for all features
+5. **Modern Stack**: Latest React and Next.js features with App Router and Python integration
+6. **User Experience**: Responsive, intuitive interface with accessibility features across all modalities
+7. **API Integration**: Clean external service integration with proper error handling for multiple AI services
+8. **Configuration**: Flexible environment management with separate service configs for each AI provider
+9. **Performance**: Optimized processing for images, videos, 3D models, and real-time scoring
+10. **Workflow Support**: Sequential and batch operations for all content types
+11. **Quality Assessment**: Integrated Azure AI Vision-based scoring system for content quality evaluation
+12. **Cross-Platform Scripts**: Python utilities integrated with Node.js for specialized processing
+13. **Developer Experience**: Well-documented code with comprehensive architecture and testing utilities
 
-This architecture provides a robust foundation for the AI Image Generation app with comprehensive feature support, accessibility compliance, and room for future growth and enhancement.
+This architecture provides a robust foundation for the AI Content Generation Platform with comprehensive multi-modal feature support, quality assessment capabilities, accessibility compliance, and extensive room for future growth and enhancement across all AI-powered content creation domains.

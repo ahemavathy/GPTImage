@@ -34,6 +34,18 @@ export interface ScoringResponse {
   scores?: ImageScores;
   /** Processing metadata */
   metadata?: ScoringMetadata;
+  /** Azure AI Vision details including generated caption */
+  azureVisionDetails?: {
+    generatedCaption: string;
+    confidence: number;
+    modelUsed: string;
+  };
+  /** Azure Computer Vision multimodal embedding details */
+  multimodalDetails?: {
+    imageEmbeddingDimensions: number;
+    textEmbeddingDimensions: number;
+    modelUsed: string;
+  };
   /** Error message (only present if failed) */
   error?: string;
 }
@@ -42,15 +54,18 @@ export interface ScoringResponse {
  * Image quality scores
  */
 export interface ImageScores {
-  /** BLIP-based similarity score (0-1) */
-  blipSimilarity: number;
+  /** Azure AI Vision similarity score (0-1) */
+  azureVisionSimilarity: number;
+  /** Azure Computer Vision multimodal embedding similarity score (0-1) */
+  azureMultimodalSimilarity?: number;
   /** Classification accuracy score (0-1) - future implementation */
   classificationAccuracy?: number;
   /** Overall quality score derived from individual metrics */
   overallScore?: number;
   /** Confidence intervals for scores */
   confidence?: {
-    blipSimilarity?: number;
+    azureVisionSimilarity?: number;
+    azureMultimodalSimilarity?: number;
     classificationAccuracy?: number;
   };
 }
@@ -68,9 +83,15 @@ export interface ScoringMetadata {
   promptLength: number;
   /** Processing time in milliseconds */
   processingTime: number;
+  /** Token usage information */
+  tokenUsage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
   /** Model information used for scoring */
   model?: {
-    blipModel?: string;
+    azureVisionModel?: string;
     classifierModel?: string;
   };
   /** Timestamp when scoring was performed */
@@ -137,7 +158,7 @@ export interface BatchScoringResponse {
     successful: number;
     failed: number;
     averageScores?: {
-      blipSimilarity: number;
+      azureVisionSimilarity: number;
       classificationAccuracy?: number;
     };
   };
@@ -149,14 +170,25 @@ export interface BatchScoringResponse {
  * Configuration for scoring parameters
  */
 export interface ScoringConfig {
-  /** BLIP model configuration */
-  blip: {
-    /** Model name/path */
-    model: string;
-    /** Device to run on (cpu, cuda) */
-    device?: string;
+  /** Azure AI Vision configuration */
+  azureVision: {
+    /** API endpoint */
+    endpoint: string;
+    /** API key */
+    apiKey: string;
+    /** API version */
+    apiVersion?: string;
     /** Similarity threshold for quality assessment */
     similarityThreshold?: number;
+  };
+  /** Azure OpenAI embeddings configuration */
+  embeddings: {
+    /** API endpoint */
+    endpoint: string;
+    /** API key */
+    apiKey: string;
+    /** Model deployment name */
+    deployment?: string;
   };
   /** Classifier configuration (future) */
   classifier?: {
@@ -187,13 +219,13 @@ export interface ScoringAnalytics {
   totalImages: number;
   /** Average scores across all images */
   averageScores: {
-    blipSimilarity: number;
+    azureVisionSimilarity: number;
     classificationAccuracy?: number;
     overallScore?: number;
   };
   /** Score distribution */
   distribution: {
-    blipSimilarity: {
+    azureVisionSimilarity: {
       excellent: number; // 0.8-1.0
       good: number;      // 0.6-0.8
       fair: number;      // 0.4-0.6

@@ -1,13 +1,6 @@
 # AI Content Generation Platform
 
-A comprehensive web application that combines AI-powered logo generation, 3D m2. **Install Python Dependencies (for Image Scoring)**
-
-```bash
-# Install Python requirements for BLIP-based scoring
-pip install -r requirements.txt
-```
-
-3. **Configure Environment Variables**
+A comprehensive web application that combines AI-powered logo generation, 3D model creation, video generation, image editing, enterprise-grade image quality scoring, and PowerPoint presentation creation using Azure OpenAI services, Azure AI Vision, and Hugging Face Spaces. Create professional logos, generate 3D models from images, edit images with AI, analyze multiple images, and generate compelling presentations with professional-grade quality assessment - all in one platform.
 
 1. Copy the example environment file:
 ```bash
@@ -54,12 +47,14 @@ copy .env.example .env.local
 - PowerPoint file generation and download
 - Copy-formatted content for API usage
 
-### 📊 **AI-Powered Image Quality Scoring**
-- **BLIP-based Similarity Scoring**: Evaluate how well generated images align with text prompts
-- **Caption Generation Analysis**: BLIP generates captions from images and compares with prompts
+### 📊 **Enterprise-Grade Image Quality Scoring**
+- **Azure AI Vision Integration**: Professional image analysis using AI Vision models
+- **Azure OpenAI Embeddings**: Semantic similarity using text-embedding-ada-002
+- **Caption Generation Analysis**: Enterprise-grade caption generation with confidence scores
 - **Visual Score Indicators**: Color-coded scoring with detailed explanations
 - **Real-time Processing**: Instant feedback on image-prompt alignment
-- **Score Categories**: Excellent (80-100%), Good (60-80%), Fair (40-60%), Poor (0-40%)
+- **Cosine Similarity Ranges**: Excellent (90-100%), Good (70-90%), Fair (50-70%), Poor (0-50%)
+- **Professional Accuracy**: Reliable scoring for production use cases
 
 ### 🎯 **User Experience**
 - **Responsive Design**: Perfect on desktop and mobile
@@ -72,18 +67,20 @@ copy .env.example .env.local
 
 Before running this application, you need:
 
-1. **Azure OpenAI Resources**: 
-   - **GPT Image Resource**: For logo generation and image editing
-   - **GPT-4o Resource**: For image analysis and presentation generation
+1. **Azure Services**: 
+   - **Azure OpenAI Resource**: For GPT Image, GPT-4o, Sora, and text embeddings
+   - **Azure AI Vision Resource**: For enterprise-grade image captioning
    - **Sora Model Access**: For video generation (requires preview access)
 2. **Model Deployments**:
    - Deploy the `gpt-image-1` model for image generation/editing
    - Deploy the `gpt-4o` model for vision and analysis
    - Deploy the `sora` model for video generation
+   - Deploy the `text-embedding-ada-002` model for semantic similarity
 3. **API Access**: 
    - GPT Image API access (limited - apply [here](https://aka.ms/oai/gptimage1access))
    - GPT-4o Vision API access
    - Sora Model API access (requires preview access from Azure OpenAI)
+   - Azure AI Vision API access for Computer Vision services
    - Hugging Face account and token (recommended for 3D generation)
 4. **PowerPoint Generator Service** (Required for PowerPoint features):
    - The PowerPoint generation functionality requires a separate service
@@ -111,7 +108,7 @@ Advanced editing workflow with history tracking and mask support
 Create precise editing masks with canvas-based tools
 
 ### 📊 **Scoring - Image Quality Assessment** (`/scoring`)
-Evaluate image-prompt alignment using advanced BLIP-based semantic similarity scoring
+Evaluate image-prompt alignment using Azure AI Vision and Azure OpenAI embeddings for enterprise-grade semantic similarity scoring
 
 ## Setup Instructions
 
@@ -145,6 +142,10 @@ AZURE_OPENAI_DEPLOYMENT_NAME=your_gpt_image_deployment_name
 AZURE_OPENAI_GPT4O_ENDPOINT=https://your-gpt4o-resource.openai.azure.com
 AZURE_OPENAI_GPT4O_API_KEY=your_gpt4o_api_key_here
 AZURE_OPENAI_GPT4O_DEPLOYMENT_NAME=your_gpt4o_deployment_name
+
+# Azure AI Vision (Computer Vision) for image quality scoring
+AZURE_AI_VISION_ENDPOINT=https://your-computer-vision-resource.cognitiveservices.azure.com/
+AZURE_AI_VISION_API_KEY=your_computer_vision_api_key_here
 
 # GPT-4o System Prompt (configurable)
 AZURE_OPENAI_GPT4O_SYSTEM_PROMPT="Your system prompt for presentation generation..."
@@ -271,7 +272,7 @@ The application will be available at `http://localhost:3000`
 2. **Upload Image**: Select an AI-generated image to evaluate
 3. **Enter Prompt**: Input the original text prompt used to generate the image
 4. **Score Image**: Click "Score Image Quality" to analyze alignment
-5. **View Results**: Get detailed BLIP similarity score with explanations:
+5. **View Results**: Get detailed Azure AI Vision similarity score with explanations:
    - **Score Breakdown**: Numerical score (0-1) and percentage
    - **Quality Category**: Excellent, Good, Fair, or Poor rating
    - **Visual Indicators**: Color-coded progress bars and badges
@@ -374,8 +375,7 @@ GPTImage/
 ├── tailwind.config.js           # Tailwind CSS configuration
 ├── tsconfig.json                # TypeScript configuration
 ├── scripts/
-│   ├── blip_scorer.py           # BLIP-based image scoring script
-│   ├── clip_scorer.py           # CLIP-based scoring (legacy/comparison)
+
 │   ├── working_3d_gen.py        # 3D model generation script
 │   └── test_api_route.py        # API testing utilities
 ├── .github/
@@ -415,7 +415,7 @@ GPTImage/
             ├── edit-image/
             │   └── route.ts     # Image editing API
             └── score-image/
-                └── route.ts     # BLIP-based image scoring API
+                └── route.ts     # Azure AI Vision-based image scoring API
 ```
 
 ## 🔧 Troubleshooting
@@ -488,7 +488,7 @@ Azure OpenAI services have rate limits:
 | **Batch Editing** | Edit multiple images simultaneously | `/edit` |
 | **Iterative Editing** | Sequential editing with history tracking | `/iterative` |
 | **Mask Editor** | Create precise editing masks | `/mask` |
-| **Image Quality Scoring** | BLIP-based semantic similarity assessment | `/scoring` |
+| **Image Quality Scoring** | Azure AI Vision + Azure OpenAI embeddings scoring | `/scoring` |
 | **PowerPoint Generation** | Convert analysis to downloadable presentations | `/analyze` |
 
 ## 📚 Additional Resources
