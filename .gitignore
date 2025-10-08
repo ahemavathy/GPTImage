@@ -57,6 +57,7 @@ public/generated-3d-models/*.obj
 public/generated-3d-models/*.mtl
 public/generated-3d-models/*.ply
 public/generated-3d-models/*.stl
+temp/
 
 # Keep directory structure with .gitkeep files
 !public/generated-logos/.gitkeep

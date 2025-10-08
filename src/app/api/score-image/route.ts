@@ -7,12 +7,30 @@ interface ScoringRequest {
   prompt: string;
 }
 
+interface EmbeddingModelResult {
+  azureVisionSimilarity: number;
+  gpt4oSimilarity: number;
+  modelName: string;
+  dimensions: number;
+  tokenUsage?: {
+    promptTokens: number;
+    totalTokens: number;
+  };
+  processingTime: number;
+}
+
 interface ScoringResponse {
   success: boolean;
   scores?: {
     azureVisionSimilarity: number;
     azureMultimodalSimilarity?: number; // New multimodal embedding similarity
+    gpt4oDescriptionSimilarity?: number; // GPT-4o image description similarity
     classificationAccuracy?: number; // Will implement later
+  };
+  embeddingComparison?: {
+    ada002: EmbeddingModelResult;
+    embedding3Small: EmbeddingModelResult;
+    embedding3Large: EmbeddingModelResult;
   };
   metadata?: {
     imageSize: { width: number; height: number };
@@ -33,6 +51,15 @@ interface ScoringResponse {
     imageEmbeddingDimensions: number;
     textEmbeddingDimensions: number;
     modelUsed: string;
+  };
+  gpt4oDetails?: {
+    generatedDescription: string;
+    modelUsed: string;
+    tokenUsage?: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
   };
   error?: string;
 }
@@ -89,6 +116,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Calculate Azure Computer Vision multimodal similarity (direct image + text embeddings)
     const multimodalResult = await calculateMultimodalSimilarity(imageBuffer, prompt);
 
+    // Calculate GPT-4o description similarity
+    const gpt4oResult = await calculateGPT4oDescriptionSimilarity(imageBuffer, prompt);
+
+    // Calculate embedding model comparison
+    const embeddingComparison = await calculateEmbeddingModelComparison(
+      azureVisionResult.generatedCaption,
+      gpt4oResult?.generatedDescription || '',
+      prompt
+    );
+
     // Placeholder for classification accuracy (to be implemented)
     // const classificationAccuracy = await calculateClassificationAccuracy(imageBuffer, prompt);
 
@@ -99,6 +136,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       scores: {
         azureVisionSimilarity: Math.round(azureVisionResult.similarity * 100) / 100,
         azureMultimodalSimilarity: multimodalResult ? Math.round(multimodalResult.similarity * 100) / 100 : undefined,
+        gpt4oDescriptionSimilarity: gpt4oResult ? Math.round(gpt4oResult.similarity * 100) / 100 : undefined,
         // classificationAccuracy: classificationAccuracy // Will add later
       },
       metadata: {
@@ -123,12 +161,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         imageEmbeddingDimensions: multimodalResult.imageEmbeddingDimensions,
         textEmbeddingDimensions: multimodalResult.textEmbeddingDimensions,
         modelUsed: multimodalResult.modelUsed
-      } : undefined
+      } : undefined,
+      // Add GPT-4o metadata
+      gpt4oDetails: gpt4oResult ? {
+        generatedDescription: gpt4oResult.generatedDescription,
+        modelUsed: gpt4oResult.modelUsed,
+        tokenUsage: gpt4oResult.tokenUsage
+      } : undefined,
+      // Add embedding model comparison
+      embeddingComparison: embeddingComparison || undefined
     };
 
     console.log(`Image scoring completed in ${processingTime}ms:`);
     console.log(`  - Caption-based similarity: ${response.scores?.azureVisionSimilarity}`);
     console.log(`  - Multimodal similarity: ${response.scores?.azureMultimodalSimilarity || 'N/A'}`);
+    console.log(`  - GPT-4o description similarity: ${response.scores?.gpt4oDescriptionSimilarity || 'N/A'}`);
+    
+    if (embeddingComparison) {
+      console.log(`Embedding Model Comparison:`);
+      console.log(`  - Ada-002: Vision=${embeddingComparison.ada002.azureVisionSimilarity.toFixed(3)}, GPT-4o=${embeddingComparison.ada002.gpt4oSimilarity.toFixed(3)}`);
+      console.log(`  - 3-Small: Vision=${embeddingComparison.embedding3Small.azureVisionSimilarity.toFixed(3)}, GPT-4o=${embeddingComparison.embedding3Small.gpt4oSimilarity.toFixed(3)}`);
+      console.log(`  - 3-Large: Vision=${embeddingComparison.embedding3Large.azureVisionSimilarity.toFixed(3)}, GPT-4o=${embeddingComparison.embedding3Large.gpt4oSimilarity.toFixed(3)}`);
+    }
 
     return NextResponse.json(response);
 
@@ -161,6 +215,17 @@ interface MultimodalResult {
   imageEmbeddingDimensions: number;
   textEmbeddingDimensions: number;
   modelUsed: string;
+}
+
+interface GPT4oResult {
+  similarity: number;
+  generatedDescription: string;
+  modelUsed: string;
+  tokenUsage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 /**
@@ -285,6 +350,202 @@ async function calculateMultimodalSimilarity(imageBuffer: Buffer, prompt: string
 
   } catch (error) {
     console.error('Error in multimodal similarity calculation:', error);
+    return null;
+  }
+}
+
+/**
+ * Calculate similarity using GPT-4o to describe the image and compare with the original prompt
+ * This method uses GPT-4o vision capabilities to generate a detailed description of the image,
+ * then compares that description with the original prompt using semantic similarity
+ * 
+ * @param imageBuffer - Image data as Buffer
+ * @param prompt - Original text prompt string
+ * @returns Promise<GPT4oResult | null> - Similarity score and metadata, or null if failed
+ */
+async function calculateGPT4oDescriptionSimilarity(imageBuffer: Buffer, prompt: string): Promise<GPT4oResult | null> {
+  try {
+    const endpoint = process.env.AZURE_OPENAI_GPT4O_ENDPOINT;
+    const apiKey = process.env.AZURE_OPENAI_GPT4O_API_KEY;
+    const deploymentName = process.env.AZURE_OPENAI_GPT4O_DEPLOYMENT_NAME;
+
+    if (!endpoint || !apiKey || !deploymentName) {
+      console.warn('GPT-4o endpoint, API key, and deployment name required for description similarity');
+      return null;
+    }
+
+    console.log(`[GPT-4o] Generating image description using ${deploymentName}`);
+
+    // Convert image buffer to base64
+    const base64Image = imageBuffer.toString('base64');
+    const imageDataUrl = `data:image/jpeg;base64,${base64Image}`;
+
+    // Call GPT-4o to describe the image
+    const chatUrl = `${endpoint.replace(/\/$/, '')}/openai/deployments/${deploymentName}/chat/completions?api-version=2024-02-15-preview`;
+
+    const response = await fetch(chatUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': apiKey,
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert image analyst. Provide an objective description of the image, focusing on the main product material, colors and finish. Include high level description of the surface, background, lighting composition, style, and overall visual elements. Limit to a maximum of 25 words'
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Please provide a detailed description of this image, including all visible elements, colors, composition, and style.'
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: imageDataUrl
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 500,
+        temperature: 0.1, // Low temperature for consistent, objective descriptions
+        user: 'image-scoring-system'
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[GPT-4o] API error:', response.status, errorText);
+      return null;
+    }
+
+    const result = await response.json();
+    
+    if (!result.choices || !result.choices[0] || !result.choices[0].message) {
+      console.error('[GPT-4o] Invalid response format:', result);
+      return null;
+    }
+
+    const generatedDescription = result.choices[0].message.content;
+    const tokenUsage = result.usage;
+
+    console.log(`[GPT-4o] Generated description: "${generatedDescription.substring(0, 100)}..."`);
+    console.log(`[GPT-4o] Token usage: ${tokenUsage?.total_tokens || 'N/A'} total`);
+
+    // Calculate semantic similarity between GPT-4o description and original prompt
+    const similarity = await calculateSemanticSimilarity(generatedDescription, prompt);
+
+    console.log(`[GPT-4o] Description-prompt similarity: ${similarity.toFixed(4)}`);
+
+    return {
+      similarity,
+      generatedDescription,
+      modelUsed: `GPT-4o-${deploymentName}`,
+      tokenUsage: tokenUsage ? {
+        promptTokens: tokenUsage.prompt_tokens,
+        completionTokens: tokenUsage.completion_tokens,
+        totalTokens: tokenUsage.total_tokens
+      } : undefined
+    };
+
+  } catch (error) {
+    console.error('Error in GPT-4o description similarity calculation:', error);
+    return null;
+  }
+}
+
+/**
+ * Compare similarity scores across different embedding models
+ * Tests how different embedding models perform on the same text comparisons
+ * 
+ * @param azureCaption - Caption generated by Azure Vision
+ * @param gpt4oDescription - Description generated by GPT-4o
+ * @param originalPrompt - Original user prompt
+ * @returns Promise<object | null> - Comparison results across models
+ */
+async function calculateEmbeddingModelComparison(
+  azureCaption: string,
+  gpt4oDescription: string,
+  originalPrompt: string
+): Promise<{
+  ada002: EmbeddingModelResult;
+  embedding3Small: EmbeddingModelResult;
+  embedding3Large: EmbeddingModelResult;
+} | null> {
+  try {
+    const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
+    const apiKey = process.env.AZURE_OPENAI_API_KEY;
+
+    if (!endpoint || !apiKey) {
+      console.warn('Azure OpenAI endpoint and API key required for embedding comparison');
+      return null;
+    }
+
+    console.log(`[Embedding Comparison] Testing 3 models on prompt: "${originalPrompt.substring(0, 50)}..."`);
+
+    const embeddingModels = [
+      { name: 'text-embedding-ada-002', key: 'ada002', dimensions: 1536 },
+      { name: 'text-embedding-3-small', key: 'embedding3Small', dimensions: 1536 },
+      { name: 'text-embedding-3-large', key: 'embedding3Large', dimensions: 3072 }
+    ];
+
+    const results: any = {};
+
+    // Test each embedding model
+    for (const model of embeddingModels) {
+      const startTime = Date.now();
+      
+      try {
+        console.log(`[Embedding Comparison] Testing ${model.name}...`);
+
+        // Get embeddings for all texts using this model
+        const [promptEmbedding, azureCaptionEmbedding, gpt4oEmbedding] = await Promise.all([
+          getTextEmbeddingWithModel(originalPrompt, endpoint, apiKey, model.name),
+          getTextEmbeddingWithModel(azureCaption, endpoint, apiKey, model.name),
+          gpt4oDescription ? getTextEmbeddingWithModel(gpt4oDescription, endpoint, apiKey, model.name) : null
+        ]);
+
+        // Calculate similarities
+        const azureVisionSimilarity = calculateCosineSimilarity(promptEmbedding.embedding, azureCaptionEmbedding.embedding);
+        const gpt4oSimilarity = gpt4oEmbedding ? calculateCosineSimilarity(promptEmbedding.embedding, gpt4oEmbedding.embedding) : 0;
+
+        const processingTime = Date.now() - startTime;
+
+        results[model.key] = {
+          azureVisionSimilarity,
+          gpt4oSimilarity,
+          modelName: model.name,
+          dimensions: model.dimensions,
+          tokenUsage: {
+            promptTokens: (promptEmbedding.usage?.prompt_tokens || 0) + (azureCaptionEmbedding.usage?.prompt_tokens || 0) + (gpt4oEmbedding?.usage?.prompt_tokens || 0),
+            totalTokens: (promptEmbedding.usage?.total_tokens || 0) + (azureCaptionEmbedding.usage?.total_tokens || 0) + (gpt4oEmbedding?.usage?.total_tokens || 0)
+          },
+          processingTime
+        };
+
+        console.log(`[${model.name}] Vision: ${azureVisionSimilarity.toFixed(4)}, GPT-4o: ${gpt4oSimilarity.toFixed(4)} (${processingTime}ms)`);
+
+      } catch (modelError) {
+        console.error(`[Embedding Comparison] Error with ${model.name}:`, modelError);
+        // Create fallback result
+        results[model.key] = {
+          azureVisionSimilarity: 0,
+          gpt4oSimilarity: 0,
+          modelName: model.name,
+          dimensions: model.dimensions,
+          processingTime: Date.now() - startTime
+        };
+      }
+    }
+
+    return results;
+
+  } catch (error) {
+    console.error('Error in embedding model comparison:', error);
     return null;
   }
 }
@@ -447,6 +708,41 @@ async function getTextEmbedding(text: string, endpoint: string, apiKey: string):
 }
 
 /**
+ * Get text embedding using a specific Azure OpenAI embedding model
+ */
+async function getTextEmbeddingWithModel(text: string, endpoint: string, apiKey: string, modelName: string): Promise<{embedding: number[], usage?: any}> {
+  const embeddingUrl = `${endpoint.replace(/\/$/, '')}/openai/deployments/${modelName}/embeddings?api-version=2023-05-15`;
+
+  const response = await fetch(embeddingUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'api-key': apiKey,
+    },
+    body: JSON.stringify({
+      input: text.trim(),
+      user: 'embedding-comparison-system'
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Azure OpenAI Embeddings API error for ${modelName}: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  
+  if (!result.data || !result.data[0] || !result.data[0].embedding) {
+    throw new Error(`Invalid embedding response format for ${modelName}`);
+  }
+
+  return {
+    embedding: result.data[0].embedding,
+    usage: result.usage
+  };
+}
+
+/**
  * Calculate cosine similarity between two vectors
  */
 function calculateCosineSimilarity(vector1: number[], vector2: number[]): number {
@@ -501,9 +797,9 @@ function calculateBasicTextSimilarity(text1: string, text2: string): number {
 export async function GET(): Promise<NextResponse> {
   return NextResponse.json({
     status: 'Azure AI Vision Image Scoring API is running',
-    version: '3.0.0',
-    supportedMetrics: ['azureVisionSimilarity'],
+    version: '4.0.0',
+    supportedMetrics: ['azureVisionSimilarity', 'azureMultimodalSimilarity', 'gpt4oDescriptionSimilarity'],
     plannedMetrics: ['classificationAccuracy'],
-    models: ['Azure-AI-Vision', 'text-embedding-ada-002']
+    models: ['Azure-AI-Vision', 'Azure-Computer-Vision-Multimodal', 'GPT-4o', 'text-embedding-ada-002']
   });
 }

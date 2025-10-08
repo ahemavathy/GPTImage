@@ -38,6 +38,13 @@ copy .env.example .env.local
 - **Iterative Editing**: Sequential editing workflow with history tracking
 - **Mask-Based Editing**: Precise editing with custom masks
 - **Canvas Mask Editor**: Create masks with brush/eraser tools
+- **✨ Prompt Enhancement System**: Structured prompt building with comprehensive categories
+  - **Product Details**: Material, color, and finish specifications
+  - **Background & Surface**: Environment and surface selection
+  - **Lighting & Camera**: Professional photography settings
+  - **Style Options**: Photorealistic, minimalistic, lifestyle, and artistic styles
+  - **Smart Prompt Generation**: Structured format for better AI understanding
+  - **Product Integrity Protection**: Maintains original product structure and proportions
 - Undo/redo functionality with edit history
 
 ### 📊 **AI-Powered Presentation Generation**
@@ -48,13 +55,15 @@ copy .env.example .env.local
 - Copy-formatted content for API usage
 
 ### 📊 **Enterprise-Grade Image Quality Scoring**
-- **Azure AI Vision Integration**: Professional image analysis using AI Vision models
-- **Azure OpenAI Embeddings**: Semantic similarity using text-embedding-ada-002
-- **Caption Generation Analysis**: Enterprise-grade caption generation with confidence scores
-- **Visual Score Indicators**: Color-coded scoring with detailed explanations
-- **Real-time Processing**: Instant feedback on image-prompt alignment
-- **Cosine Similarity Ranges**: Excellent (90-100%), Good (70-90%), Fair (50-70%), Poor (0-50%)
-- **Professional Accuracy**: Reliable scoring for production use cases
+- **Multi-Method Analysis**: Three complementary scoring approaches for comprehensive evaluation
+- **Azure AI Vision Integration**: Professional image captioning with confidence scores
+- **GPT-4o Vision Analysis**: Advanced AI-powered detailed image descriptions (25-word limit)
+- **Azure Computer Vision Multimodal Embeddings**: Direct image-text comparison in shared vector space
+- **Multi-Model Embedding Comparison**: Side-by-side analysis across Ada-002, 3-Small, and 3-Large models
+- **Realistic Similarity Guidelines**: Updated thresholds - Extremely Similar (85-100%), Very Similar (70-85%), Moderate (50-70%), Somewhat Related (30-50%), Very Different (0-30%)
+- **Advanced Discrimination**: 3072-dimensional embeddings for nuanced semantic understanding
+- **Token Usage Tracking**: Cost monitoring across all AI model interactions
+- **Professional Accuracy**: Production-ready scoring with comprehensive debugging and validation
 
 ### 🎯 **User Experience**
 - **Responsive Design**: Perfect on desktop and mobile
@@ -99,7 +108,7 @@ Generate professional logos, images, 3D models, and videos from descriptions or 
 Upload images, analyze with GPT-4o, and create PowerPoint presentations
 
 ### ✏️ **Edit - Batch Editing** (`/edit`)
-Upload and edit multiple images simultaneously with AI
+Upload and edit multiple images simultaneously with AI, featuring comprehensive prompt enhancement system with structured categories for product details, environment, lighting, and style options
 
 ### 🔄 **Iterative - Sequential Editing** (`/iterative`)
 Advanced editing workflow with history tracking and mask support
@@ -108,7 +117,7 @@ Advanced editing workflow with history tracking and mask support
 Create precise editing masks with canvas-based tools
 
 ### 📊 **Scoring - Image Quality Assessment** (`/scoring`)
-Evaluate image-prompt alignment using Azure AI Vision and Azure OpenAI embeddings for enterprise-grade semantic similarity scoring
+Comprehensive image-prompt alignment evaluation using three scoring methods: Azure AI Vision captioning, GPT-4o detailed analysis, and direct multimodal embeddings with comparative analysis across multiple embedding models (Ada-002, 3-Small, 3-Large)
 
 ## Setup Instructions
 
@@ -146,6 +155,10 @@ AZURE_OPENAI_GPT4O_DEPLOYMENT_NAME=your_gpt4o_deployment_name
 # Azure AI Vision (Computer Vision) for image quality scoring
 AZURE_AI_VISION_ENDPOINT=https://your-computer-vision-resource.cognitiveservices.azure.com/
 AZURE_AI_VISION_API_KEY=your_computer_vision_api_key_here
+
+# Azure OpenAI Embeddings (for comprehensive similarity analysis)
+# Note: Uses same AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY as above
+# Requires deployments: text-embedding-ada-002, text-embedding-3-small, text-embedding-3-large
 
 # GPT-4o System Prompt (configurable)
 AZURE_OPENAI_GPT4O_SYSTEM_PROMPT="Your system prompt for presentation generation..."
@@ -242,11 +255,18 @@ The application will be available at `http://localhost:3000`
 
 1. **Navigate to Edit**: Go to `/edit` page
 2. **Upload Images**: Select one or multiple images to edit
-3. **Add Mask (Optional)**: Upload a mask image for precise editing areas
-4. **Set Output Count**: Choose how many edited versions to generate
-5. **Describe Changes**: Enter detailed editing instructions
-6. **Process**: Click "Edit Image" and wait for AI processing
-7. **Download**: Save individual or all edited images
+3. **Add Mask (Optional)**: Upload a mask image for precise editing areas (collapsible section)
+4. **Describe Changes**: Enter detailed editing instructions
+5. **✨ Enhance Prompt** (Optional): Use the comprehensive prompt enhancement system:
+   - **Product Details**: Select material (ceramic, glass, metal), color, and finish options
+   - **Background & Surface**: Choose surfaces (wooden table, marble countertop) and backgrounds
+   - **Lighting**: Pick from soft ambient, studio lighting, natural sunlight options
+   - **Camera Angle**: Select viewpoint (top-down, front view, 45° angle, macro shot)
+   - **Style**: Choose photorealistic, minimalistic, lifestyle, or artistic styles
+   - **Preview & Apply**: See enhanced prompt preview before applying
+6. **Set Output Count**: Choose how many edited versions to generate
+7. **Process**: Click "Edit Image" and wait for AI processing
+8. **Download**: Save individual or all edited images
 
 ### 🔄 Iterative Editing Workflow
 
@@ -271,14 +291,18 @@ The application will be available at `http://localhost:3000`
 1. **Navigate to Scoring**: Go to `/scoring` page
 2. **Upload Image**: Select an AI-generated image to evaluate
 3. **Enter Prompt**: Input the original text prompt used to generate the image
-4. **Score Image**: Click "Score Image Quality" to analyze alignment
-5. **View Results**: Get detailed Azure AI Vision similarity score with explanations:
-   - **Score Breakdown**: Numerical score (0-1) and percentage
-   - **Quality Category**: Excellent, Good, Fair, or Poor rating
-   - **Visual Indicators**: Color-coded progress bars and badges
-   - **Processing Details**: Image dimensions and processing time
-6. **Interpretation Guide**: Use the built-in score interpretation chart
-7. **Multiple Tests**: Clear and test different image-prompt combinations
+4. **Score Image**: Click "Score Image Quality" to analyze alignment across three methods
+5. **View Comprehensive Results**:
+   - **Azure Vision Caption Score**: Uses 3-Large model (3072D) for improved discrimination
+   - **GPT-4o Similarity Score**: Advanced AI analysis with detailed image descriptions
+   - **MM Embedding Score**: Direct multimodal comparison in shared vector space
+   - **Embedding Model Comparison**: Side-by-side analysis of Ada-002, 3-Small, and 3-Large performance
+6. **Advanced Analytics**: 
+   - **Token Usage Tracking**: Monitor costs across all AI models
+   - **Processing Time**: Performance metrics for each scoring method
+   - **Model Insights**: Understand which embedding models provide better discrimination
+7. **Realistic Interpretation**: Updated similarity guidelines based on actual cosine similarity performance
+8. **Multiple Tests**: Clear and test different image-prompt combinations with comprehensive feedback
 
 ## 💡 Example Prompts
 
@@ -309,6 +333,7 @@ The application will be available at `http://localhost:3000`
 - Natural objects: fruits, plants, rocks, shells
 
 ### Image Editing
+**Basic Prompts:**
 - "Change the background to a sunset with mountains"
 - "Add sunglasses to the person in the photo"
 - "Make the logo more colorful and vibrant"
@@ -317,6 +342,12 @@ The application will be available at `http://localhost:3000`
 - "Replace the sky with a starry night" (with mask covering sky area)
 - "Change only the shirt color to red" (with mask covering shirt area)
 - "Add modern architectural elements to the building facade"
+
+**Enhanced Prompts (using prompt enhancement feature):**
+- "glossy white ceramic blender on a marble countertop, soft ambient light, front view, minimalistic style"
+- "matte black stainless steel coffee maker with plain white background, studio lighting, 45° angle, product photography style"
+- "textured wood cutting board on a wooden table, natural sunlight, top-down view, lifestyle shot style"
+- "brushed metal kitchen appliance with blurred kitchen background, golden hour light, three-quarter view, photorealistic style"
 
 ### Image Quality Scoring
 **Testing Prompts with Generated Images:**
@@ -356,6 +387,9 @@ The application uses the Azure OpenAI Image Generation API with these parameters
   - Azure OpenAI GPT Image API (gpt-image-1)
   - Azure OpenAI GPT-4o Vision API
   - Azure OpenAI Sora API (video generation)
+  - Azure OpenAI Embeddings (Ada-002, 3-Small, 3-Large)
+  - Azure AI Vision (Computer Vision)
+  - Azure Computer Vision Multimodal Embeddings
   - Hugging Face Spaces API (frogleo/Image-to-3D)
   - External PowerPoint Generator API
 - **State Management**: React Hooks
@@ -388,7 +422,8 @@ GPTImage/
 │   └── .gitkeep                # Preserve directory structure
 └── src/
     ├── components/
-    │   └── Navigation.tsx       # Shared navigation component
+    │   ├── Navigation.tsx       # Shared navigation component
+    │   └── ImageScorer.tsx      # Advanced scoring component with multi-model analysis
     └── app/
         ├── globals.css          # Global styles
         ├── layout.tsx           # Root layout
@@ -415,7 +450,7 @@ GPTImage/
             ├── edit-image/
             │   └── route.ts     # Image editing API
             └── score-image/
-                └── route.ts     # Azure AI Vision-based image scoring API
+                └── route.ts     # Multi-method scoring API: Azure Vision, GPT-4o, Multimodal Embeddings
 ```
 
 ## 🔧 Troubleshooting
@@ -449,7 +484,14 @@ GPTImage/
 5. **Content Filter Errors**
    - Ensure descriptions don't contain inappropriate content
    - Try rephrasing prompts with more professional language
+   - Use the prompt enhancement feature for structured, professional prompts
    - Check Azure OpenAI content policy guidelines
+
+6. **Prompt Enhancement Issues**
+   - **Dropdown Visibility**: All dropdown options now have improved text contrast for better readability
+   - **Option Selection**: Choose complementary options (e.g., ceramic + glossy finish + studio lighting)
+   - **Preview Not Updating**: Check that enhancement options are selected before clicking "Apply Enhanced Prompt"
+   - **Reset Feature**: Use "Reset All" to clear all enhancement selections and start over
 
 ### Performance Issues
 

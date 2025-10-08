@@ -2,7 +2,71 @@
 
 import React, { useState, useRef } from 'react';
 import { Upload, Zap, TrendingUp, Clock, Image as ImageIcon } from 'lucide-react';
-import { ScoringResponse } from '@/types/scoring';
+
+// TypeScript interfaces for scoring
+interface EmbeddingModelResult {
+  azureVisionSimilarity: number;
+  gpt4oSimilarity: number;
+  modelName: string;
+  dimensions: number;
+  tokenUsage?: {
+    promptTokens: number;
+    totalTokens: number;
+  };
+  processingTime: number;
+}
+
+interface ImageScores {
+  azureVisionSimilarity: number;
+  azureMultimodalSimilarity?: number;
+  gpt4oDescriptionSimilarity?: number;
+  classificationAccuracy?: number;
+}
+
+interface ScoringMetadata {
+  imageSize: {
+    width: number;
+    height: number;
+  };
+  promptLength: number;
+  processingTime: number;
+  tokenUsage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+}
+
+interface ScoringResponse {
+  success: boolean;
+  scores?: ImageScores;
+  metadata?: ScoringMetadata;
+  azureVisionDetails?: {
+    generatedCaption: string;
+    confidence: number;
+    modelUsed: string;
+  };
+  multimodalDetails?: {
+    imageEmbeddingDimensions: number;
+    textEmbeddingDimensions: number;
+    modelUsed: string;
+  };
+  gpt4oDetails?: {
+    generatedDescription: string;
+    modelUsed: string;
+    tokenUsage?: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+  };
+  embeddingComparison?: {
+    ada002: EmbeddingModelResult;
+    embedding3Small: EmbeddingModelResult;
+    embedding3Large: EmbeddingModelResult;
+  };
+  error?: string;
+}
 
 // Inline utility functions for Azure AI Vision scoring
 const formatScoreAsPercentage = (score: number, decimals: number = 0): string => {
@@ -10,17 +74,37 @@ const formatScoreAsPercentage = (score: number, decimals: number = 0): string =>
 };
 
 const getScoreColor = (score: number): string => {
-  if (score >= 0.95) return '#10b981'; // green-500 - Excellent
-  if (score >= 0.9) return '#3b82f6'; // blue-500 - Good
-  if (score >= 0.7) return '#f59e0b'; // amber-500 - Fair
-  return '#ef4444'; // red-500 - Poor
+  if (score >= 0.85) return '#10b981'; // green-500 - Extremely similar
+  if (score >= 0.7) return '#3b82f6'; // blue-500 - Very similar  
+  if (score >= 0.5) return '#f59e0b'; // amber-500 - Moderately similar
+  if (score >= 0.3) return '#f97316'; // orange-500 - Somewhat related
+  return '#ef4444'; // red-500 - Very different
 };
 
 const getScoreDescription = (score: number): string => {
-  if (score >= 0.95) return 'Excellent semantic match - nearly identical concepts';
-  if (score >= 0.9) return 'Good semantic alignment - very similar concepts';
-  if (score >= 0.7) return 'Fair semantic alignment - moderately related concepts';
-  return 'Poor semantic alignment - distantly related or unrelated concepts';
+  if (score >= 0.85) return 'Extremely similar - nearly identical semantic concepts';
+  if (score >= 0.7) return 'Very similar - strong semantic alignment';
+  if (score >= 0.5) return 'Moderately similar - related concepts with clear connections';
+  if (score >= 0.3) return 'Somewhat related - weak but detectable semantic relationship';
+  return 'Very different - minimal or no semantic relationship';
+};
+
+const getModelDisplayName = (modelName: string): string => {
+  switch (modelName) {
+    case 'text-embedding-ada-002': return 'Ada-002 (Legacy)';
+    case 'text-embedding-3-small': return '3-Small (Efficient)';
+    case 'text-embedding-3-large': return '3-Large (Performance)';
+    default: return modelName;
+  }
+};
+
+const getModelColor = (modelName: string): string => {
+  switch (modelName) {
+    case 'text-embedding-ada-002': return '#6b7280'; // gray-500
+    case 'text-embedding-3-small': return '#3b82f6'; // blue-500  
+    case 'text-embedding-3-large': return '#8b5cf6'; // violet-500
+    default: return '#6b7280';
+  }
 };
 
 /**
@@ -118,8 +202,8 @@ export default function ImageScorer() {
           <h2 className="text-3xl font-bold text-gray-900">Image Quality Scorer</h2>
         </div>
         <p className="text-gray-600 max-w-2xl">
-          Upload an image and prompt to get two different similarity scores: one based on 
-          AI-generated captions, and another using direct image-text comparison.
+          Upload an image and prompt to get comprehensive similarity analysis including three scoring methods 
+          and comparison across multiple embedding models (Ada-002, 3-Small, 3-Large).
         </p>
       </div>
 
@@ -235,26 +319,26 @@ export default function ImageScorer() {
               {/* Azure AI Vision Similarity Score */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-lg font-semibold text-gray-900">Text Embedding Similarity Score</h4>
+                  <h4 className="text-lg font-semibold text-gray-900">Azure Vision Caption Similarity Score</h4>
                   <div className="flex items-center">
                     <div 
                       className="w-3 h-3 rounded-full mr-2"
-                      style={{ backgroundColor: getScoreColor(scoringResult.scores.azureVisionSimilarity) }}
+                      style={{ backgroundColor: getScoreColor(scoringResult.embeddingComparison?.embedding3Large?.azureVisionSimilarity || scoringResult.scores.azureVisionSimilarity) }}
                     ></div>
-                    <span className="text-2xl font-bold" style={{ color: getScoreColor(scoringResult.scores.azureVisionSimilarity) }}>
-                      {formatScoreAsPercentage(scoringResult.scores.azureVisionSimilarity)}
+                    <span className="text-2xl font-bold" style={{ color: getScoreColor(scoringResult.embeddingComparison?.embedding3Large?.azureVisionSimilarity || scoringResult.scores.azureVisionSimilarity) }}>
+                      {formatScoreAsPercentage(scoringResult.embeddingComparison?.embedding3Large?.azureVisionSimilarity || scoringResult.scores.azureVisionSimilarity)}
                     </span>
                   </div>
                 </div>
                 <p className="text-gray-600 text-sm mb-2">
-                  {getScoreDescription(scoringResult.scores.azureVisionSimilarity)}
+                  {getScoreDescription(scoringResult.embeddingComparison?.embedding3Large?.azureVisionSimilarity || scoringResult.scores.azureVisionSimilarity)}
                 </p>
                 <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
                   <div 
                     className="h-2 rounded-full transition-all duration-500"
                     style={{ 
-                      width: `${scoringResult.scores.azureVisionSimilarity * 100}%`,
-                      backgroundColor: getScoreColor(scoringResult.scores.azureVisionSimilarity)
+                      width: `${(scoringResult.embeddingComparison?.embedding3Large?.azureVisionSimilarity || scoringResult.scores.azureVisionSimilarity) * 100}%`,
+                      backgroundColor: getScoreColor(scoringResult.embeddingComparison?.embedding3Large?.azureVisionSimilarity || scoringResult.scores.azureVisionSimilarity)
                     }}
                   ></div>
                 </div>
@@ -271,10 +355,73 @@ export default function ImageScorer() {
                         <div className="w-2 h-2 bg-green-400 rounded-full mr-1"></div>
                         AI Vision model - Caption confidence: {Math.round(scoringResult.azureVisionDetails.confidence * 100)}%
                       </span>
+                      {scoringResult.embeddingComparison?.embedding3Large && (
+                        <span className="text-violet-600">
+                          3-Large ({scoringResult.embeddingComparison.embedding3Large.dimensions}D)
+                        </span>
+                      )}
                     </div>
                   </div>
                 )}
               </div>
+
+              {/* GPT-4o Description Similarity Score */}
+              {scoringResult.scores.gpt4oDescriptionSimilarity !== undefined && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-lg font-semibold text-gray-900">GPT-4o Similarity Score</h4>
+                    <div className="flex items-center">
+                      <div 
+                        className="w-3 h-3 rounded-full mr-2"
+                        style={{ backgroundColor: getScoreColor(scoringResult.embeddingComparison?.embedding3Large?.gpt4oSimilarity || scoringResult.scores.gpt4oDescriptionSimilarity) }}
+                      ></div>
+                      <span className="text-2xl font-bold" style={{ color: getScoreColor(scoringResult.embeddingComparison?.embedding3Large?.gpt4oSimilarity || scoringResult.scores.gpt4oDescriptionSimilarity) }}>
+                        {formatScoreAsPercentage(scoringResult.embeddingComparison?.embedding3Large?.gpt4oSimilarity || scoringResult.scores.gpt4oDescriptionSimilarity)}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-2">
+                    {getScoreDescription(scoringResult.embeddingComparison?.embedding3Large?.gpt4oSimilarity || scoringResult.scores.gpt4oDescriptionSimilarity)}
+                  </p>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                    <div 
+                      className="h-2 rounded-full transition-all duration-500"
+                      style={{ 
+                        width: `${(scoringResult.embeddingComparison?.embedding3Large?.gpt4oSimilarity || scoringResult.scores.gpt4oDescriptionSimilarity) * 100}%`,
+                        backgroundColor: getScoreColor(scoringResult.embeddingComparison?.embedding3Large?.gpt4oSimilarity || scoringResult.scores.gpt4oDescriptionSimilarity)
+                      }}
+                    ></div>
+                  </div>
+                  
+                  {/* GPT-4o Generated Description Display */}
+                  {scoringResult.gpt4oDetails?.generatedDescription && (
+                    <div className="bg-white bg-opacity-60 rounded-lg p-3 border border-green-100">
+                      <h5 className="text-sm font-medium text-gray-700 mb-1">What GPT-4o sees:</h5>
+                      <p className="text-gray-900 text-sm italic mb-2">"{scoringResult.gpt4oDetails.generatedDescription}"</p>
+                      
+                      {/* Model details */}
+                      <div className="mt-2 text-xs text-gray-600 flex items-center justify-between">
+                        <span className="inline-flex items-center">
+                          <div className="w-2 h-2 bg-green-400 rounded-full mr-1"></div>
+                          {scoringResult.gpt4oDetails.modelUsed} - Vision + Language Analysis
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          {scoringResult.embeddingComparison?.embedding3Large && (
+                            <span className="text-violet-600">
+                              3-Large ({scoringResult.embeddingComparison.embedding3Large.dimensions}D)
+                            </span>
+                          )}
+                          {scoringResult.gpt4oDetails.tokenUsage && (
+                            <span className="text-gray-500">
+                              {scoringResult.gpt4oDetails.tokenUsage.totalTokens} tokens
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Azure Computer Vision Multimodal Score */}
               {scoringResult.scores.azureMultimodalSimilarity !== undefined && (
@@ -282,25 +429,19 @@ export default function ImageScorer() {
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-lg font-semibold text-gray-900">MM Embedding Similarity Score</h4>
                     <div className="flex items-center">
-                      <div 
-                        className="w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: getScoreColor(scoringResult.scores.azureMultimodalSimilarity) }}
-                      ></div>
-                      <span className="text-2xl font-bold" style={{ color: getScoreColor(scoringResult.scores.azureMultimodalSimilarity) }}>
+                      <div className="w-3 h-3 rounded-full mr-2 bg-purple-500"></div>
+                      <span className="text-2xl font-bold text-purple-700">
                         {formatScoreAsPercentage(scoringResult.scores.azureMultimodalSimilarity)}
                       </span>
                     </div>
                   </div>
                   <p className="text-gray-600 text-sm mb-2">
-                    {getScoreDescription(scoringResult.scores.azureMultimodalSimilarity)}
+                    Direct multimodal embedding comparison in shared vector space
                   </p>
                   <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
                     <div 
-                      className="h-2 rounded-full transition-all duration-500"
-                      style={{ 
-                        width: `${scoringResult.scores.azureMultimodalSimilarity * 100}%`,
-                        backgroundColor: getScoreColor(scoringResult.scores.azureMultimodalSimilarity)
-                      }}
+                      className="h-2 rounded-full transition-all duration-500 bg-purple-500"
+                      style={{ width: `${scoringResult.scores.azureMultimodalSimilarity * 100}%` }}
                     ></div>
                   </div>
                   
@@ -316,25 +457,73 @@ export default function ImageScorer() {
                 </div>
               )}
 
-              {/* Metadata */}
-              {scoringResult.metadata && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <h5 className="text-sm font-medium text-gray-700 mb-3">Processing Details</h5>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center">
-                      <Clock className="w-4 h-4 text-gray-400 mr-2" />
-                      <span className="text-gray-600">
-                        {scoringResult.metadata.processingTime}ms
-                      </span>
-                    </div>
-                    {scoringResult.metadata.tokenUsage && (
-                      <div className="flex items-center">
-                        <span className="w-4 h-4 text-gray-400 mr-2 text-xs font-mono">T</span>
-                        <span className="text-gray-600">
-                          {scoringResult.metadata.tokenUsage.totalTokens} tokens
-                        </span>
+              {/* Embedding Model Comparison */}
+              {scoringResult.embeddingComparison && (
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-6">
+                  <h5 className="text-lg font-semibold text-gray-900 mb-4">Embedding Model Comparison</h5>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Compare how different OpenAI embedding models perform on the same text comparisons.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {Object.entries(scoringResult.embeddingComparison).map(([key, result]) => (
+                      <div key={key} className="bg-white rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-center mb-3">
+                          <div 
+                            className="w-3 h-3 rounded-full mr-2"
+                            style={{ backgroundColor: getModelColor(result.modelName) }}
+                          ></div>
+                          <h6 className="font-medium text-gray-900">{getModelDisplayName(result.modelName)}</h6>
+                        </div>
+                        
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Vision Caption:</span>
+                            <span className="font-medium" style={{ color: getScoreColor(result.azureVisionSimilarity) }}>
+                              {formatScoreAsPercentage(result.azureVisionSimilarity)}
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600">GPT-4o Desc:</span>
+                            <span className="font-medium" style={{ color: getScoreColor(result.gpt4oSimilarity) }}>
+                              {formatScoreAsPercentage(result.gpt4oSimilarity)}
+                            </span>
+                          </div>
+                          
+                          <div className="pt-2 border-t border-gray-100">
+                            <div className="flex justify-between text-xs text-gray-500">
+                              <span>{result.dimensions}D</span>
+                              <span>{result.processingTime}ms</span>
+                            </div>
+                            {result.tokenUsage && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {result.tokenUsage.totalTokens} tokens
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    )}
+                    ))}
+                  </div>
+                  
+                  {/* Model Performance Analysis */}
+                  <div className="mt-4 bg-white bg-opacity-60 rounded-lg p-3 border border-indigo-100">
+                    <h6 className="text-sm font-medium text-gray-700 mb-2">Model Performance Insights:</h6>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                      <div>
+                        <span className="font-medium text-gray-700">Ada-002:</span>
+                        <p className="text-gray-600">Legacy model, balanced performance</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-blue-700">3-Small:</span>
+                        <p className="text-gray-600">Faster, cost-effective, good discrimination</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-violet-700">3-Large:</span>
+                        <p className="text-gray-600">Highest accuracy, better nuanced understanding</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -342,22 +531,26 @@ export default function ImageScorer() {
               {/* Score Interpretation */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <h5 className="text-sm font-medium text-gray-700 mb-2">Cosine Similarity Interpretation</h5>
-                <div className="grid grid-cols-4 gap-2 text-xs">
+                <div className="grid grid-cols-5 gap-2 text-xs">
                   <div className="text-center">
                     <div className="w-full bg-red-500 h-2 rounded mb-1"></div>
-                    <span className="text-gray-600">Poor<br/>0-70%<br/>Unrelated</span>
+                    <span className="text-gray-600">Very Different<br/>0-30%<br/>Unrelated</span>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-full bg-orange-500 h-2 rounded mb-1"></div>
+                    <span className="text-gray-600">Somewhat<br/>30-50%<br/>Weak relation</span>
                   </div>
                   <div className="text-center">
                     <div className="w-full bg-amber-500 h-2 rounded mb-1"></div>
-                    <span className="text-gray-600">Fair<br/>70-90%<br/>Moderately related</span>
+                    <span className="text-gray-600">Moderate<br/>50-70%<br/>Related</span>
                   </div>
                   <div className="text-center">
                     <div className="w-full bg-blue-500 h-2 rounded mb-1"></div>
-                    <span className="text-gray-600">Good<br/>90-95%<br/>Very similar</span>
+                    <span className="text-gray-600">Very Similar<br/>70-85%<br/>Strong alignment</span>
                   </div>
                   <div className="text-center">
                     <div className="w-full bg-green-500 h-2 rounded mb-1"></div>
-                    <span className="text-gray-600">Excellent<br/>95-100%<br/>Nearly identical</span>
+                    <span className="text-gray-600">Extremely<br/>85-100%<br/>Nearly identical</span>
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-2 text-center">

@@ -79,10 +79,16 @@ The AI Content Generation Platform is a comprehensive Next.js application that p
   - Accessibility features (ARIA attributes, keyboard navigation)
 
 - **Edit Page** (`/src/app/edit/page.tsx`)
-  - Single/batch image editing capabilities
-  - Mask-based modifications support
-  - Configurable number of output images
-  - Multi-image rendering and download
+  - Single/batch image editing capabilities with advanced prompt enhancement system
+  - Comprehensive prompt building interface with structured categories:
+    - **Product Details**: Material, color, finish dropdown selections
+    - **Background & Surface**: Environment and surface options
+    - **Lighting & Camera**: Professional photography settings
+    - **Style Options**: Photorealistic, minimalistic, lifestyle, artistic styles
+  - Smart prompt generation with structured format: "[Product attributes] on [surface], [lighting], [style]"
+  - Collapsible mask-based modifications support for precise editing
+  - Configurable number of output images with enhanced prompt preview
+  - Multi-image rendering and download with accessibility improvements
 
 - **Iterative Edit Page** (`/src/app/iterative/page.tsx`)
   - Sequential image editing workflow
@@ -97,13 +103,15 @@ The AI Content Generation Platform is a comprehensive Next.js application that p
   - Adjustable brush sizes and tools
 
 - **Scoring Page** (`/src/app/scoring/page.tsx`)
-  - Azure AI Vision-based image quality assessment
-  - Upload image and corresponding text prompt
-  - Enterprise-grade semantic similarity scoring using AI Vision models
-  - Azure OpenAI embeddings for professional semantic analysis
-  - Visual score indicators with color-coded results
-  - Cosine similarity interpretation guide (Excellent 90-100%, Good 70-90%, Fair 50-70%, Poor 0-50%)
-  - Processing metadata display (image dimensions, processing time, model confidence)
+  - Multi-method image quality assessment with three complementary approaches
+  - Azure AI Vision caption-based scoring with enterprise-grade accuracy
+  - GPT-4o vision analysis for detailed image descriptions (25-word optimized prompts)
+  - Azure Computer Vision multimodal embeddings for direct image-text comparison
+  - Multi-model embedding comparison across Ada-002 (1536D), 3-Small (1536D), and 3-Large (3072D)
+  - Realistic cosine similarity interpretation (Extremely Similar 85-100%, Very Similar 70-85%, Moderate 50-70%, Somewhat Related 30-50%, Very Different 0-30%)
+  - Advanced visual indicators with model-specific color coding and performance insights
+  - Comprehensive token usage tracking and cost monitoring across all AI models
+  - Processing metadata with embedding dimensions and model performance analytics
 
 #### **Shared Components:**
 - **Navigation Component** (`/src/components/Navigation.tsx`)
@@ -112,16 +120,31 @@ The AI Content Generation Platform is a comprehensive Next.js application that p
   - Responsive design with mobile support
   - Icon-based navigation with clear labels
 
+- **ImageScorer Component** (`/src/components/ImageScorer.tsx`)
+  - Advanced multi-method scoring interface with inline TypeScript types
+  - Three scoring method displays: Azure Vision, GPT-4o, and Multimodal Embeddings
+  - Embedding model comparison grid with performance analytics
+  - Realistic cosine similarity color schemes and interpretation guides
+  - Token usage tracking and processing time monitoring
+  - Model-specific insights and recommendations (Ada-002, 3-Small, 3-Large)
+  - Comprehensive error handling and fallback mechanisms
+
 #### **Key Features:**
 - **Responsive Design**: Tailwind CSS for mobile-first approach
 - **Real-time Feedback**: Loading states, progress indicators, upload status
 - **File Handling**: Drag-and-drop, multi-file selection, file validation
 - **Error Management**: User-friendly error messages with ARIA live regions
 - **State Management**: React hooks for complex state and form handling
-- **Accessibility**: WCAG 2.1 AA compliance features
+- **Accessibility**: WCAG 2.1 AA compliance features with dropdown text visibility improvements
 - **Input Validation**: Client and server-side validation with sanitization
 - **Performance**: Optimized image processing and lazy loading
 - **User Experience**: Collapsible sections, history tracking, undo/redo
+- **Prompt Enhancement**: Comprehensive structured prompt building system with:
+  - **Categorical Organization**: Product, environment, lighting, camera, style options
+  - **Smart Generation**: Structured prompt format for better AI understanding
+  - **Real-time Preview**: Live prompt preview with enhancement options
+  - **Product Integrity**: Automatic preservation of original product structure
+  - **UI Accessibility**: Enhanced dropdown visibility and user-friendly interface
 - **Utility Functions**: Reusable helper functions for common operations
 
 ### 2. API Layer (Next.js API Routes)
@@ -219,13 +242,13 @@ Response: {
 
 **`/api/score-image`**
 ```typescript
-// Handles Azure AI Vision-based image quality scoring
+// Handles multi-method image quality scoring with comprehensive analysis
 GET /api/score-image
 Response: {
   status: string,
-  version: string,
-  supportedMetrics: string[],
-  models: string[]
+  version: "4.0.0",
+  supportedMetrics: ["azureVisionSimilarity", "azureMultimodalSimilarity", "gpt4oDescriptionSimilarity"],
+  models: ["Azure-AI-Vision", "Azure-Computer-Vision-Multimodal", "GPT-4o", "text-embedding-ada-002", "text-embedding-3-small", "text-embedding-3-large"]
 }
 
 POST /api/score-image
@@ -237,19 +260,46 @@ Response: {
   success: boolean,
   scores?: {
     azureVisionSimilarity: number (0-1),
-    classificationAccuracy?: number
+    azureMultimodalSimilarity?: number (0-1),
+    gpt4oDescriptionSimilarity?: number (0-1)
+  },
+  embeddingComparison?: {
+    ada002: EmbeddingModelResult,
+    embedding3Small: EmbeddingModelResult,
+    embedding3Large: EmbeddingModelResult
   },
   metadata?: {
     imageSize: { width: number, height: number },
     promptLength: number,
-    processingTime: number
+    processingTime: number,
+    tokenUsage?: { promptTokens: number, completionTokens: number, totalTokens: number }
   },
   azureVisionDetails?: {
     generatedCaption: string,
     confidence: number,
     modelUsed: string
   },
+  multimodalDetails?: {
+    imageEmbeddingDimensions: number,
+    textEmbeddingDimensions: number,
+    modelUsed: string
+  },
+  gpt4oDetails?: {
+    generatedDescription: string,
+    modelUsed: string,
+    tokenUsage?: { promptTokens: number, completionTokens: number, totalTokens: number }
+  },
   error?: string
+}
+
+// EmbeddingModelResult interface
+interface EmbeddingModelResult {
+  azureVisionSimilarity: number,
+  gpt4oSimilarity: number,
+  modelName: string,
+  dimensions: number,
+  tokenUsage?: { promptTokens: number, totalTokens: number },
+  processingTime: number
 }
 ```
 
@@ -295,22 +345,37 @@ Response: {
 #### **Azure AI Services Integration:**
 
 **Azure AI Vision (Computer Vision)**
-- **Purpose**: Professional-grade image captioning and analysis using Azure AI Vision models
+- **Purpose**: Professional-grade image captioning and multimodal embeddings using Azure AI Vision models
 - **Configuration**: Separate endpoint, API key for Computer Vision service
 - **Features**:
-  - Enterprise-grade image captioning with confidence scores
-  - Gender-neutral caption options
-  - Integration with Azure OpenAI embeddings for semantic similarity
-  - High accuracy and reliability for production use
+  - Enterprise-grade image captioning with confidence scores and gender-neutral options
+  - Multimodal embeddings for direct image-text comparison in shared vector space
+  - Integration with Azure OpenAI embeddings for comprehensive semantic similarity analysis
+  - High accuracy and reliability for production use with advanced debugging capabilities
 
-**Azure OpenAI Embeddings**
-- **Purpose**: Semantic similarity calculation using state-of-the-art language models
-- **Model**: text-embedding-ada-002 for high-quality vector representations
+**Azure OpenAI Embeddings (Multi-Model Support)**
+- **Purpose**: Advanced semantic similarity calculation using multiple state-of-the-art embedding models
+- **Models**: 
+  - **text-embedding-ada-002** (1536D): Legacy model with balanced performance
+  - **text-embedding-3-small** (1536D): Efficient model with improved discrimination
+  - **text-embedding-3-large** (3072D): High-performance model with nuanced understanding
 - **Features**:
+  - Comparative analysis across multiple embedding models for comprehensive evaluation
+  - Advanced cosine similarity calculation with realistic threshold interpretation
   - Professional semantic understanding beyond simple word matching
-  - Cosine similarity calculation between high-dimensional vectors
-  - Handles context, synonyms, and nuanced meaning
-  - Consistent similarity scoring across all image captioning methods
+  - Handles context, synonyms, and nuanced meaning with improved discrimination
+  - Token usage tracking and cost optimization across all models
+  - Performance analytics and model recommendation insights
+
+**GPT-4o Vision Integration**
+- **Purpose**: Advanced AI-powered image description and analysis for detailed semantic comparison
+- **Configuration**: Separate GPT-4o endpoint, API key, and deployment
+- **Features**:
+  - Detailed image descriptions optimized with 25-word limits for focused analysis
+  - Advanced vision capabilities capturing nuanced visual elements, composition, and style
+  - Integration with embedding models for comprehensive prompt-image alignment scoring
+  - Token usage tracking and cost monitoring for production deployment
+  - Low-temperature inference (0.1) for consistent, objective descriptions
 
 #### **PowerPoint Generator API**
 - **Endpoint**: Configurable via `POWERPOINT_API_BASE_URL` environment variable
@@ -337,11 +402,12 @@ Response: {
 - **Environment**: .env configuration
 
 ### **External Dependencies:**
-- **AI Services**: Azure OpenAI (GPT Image, GPT-4o, Sora, Embeddings), Azure AI Vision (Computer Vision)
+- **AI Services**: Azure OpenAI (GPT Image, GPT-4o, Sora, Multi-Model Embeddings), Azure AI Vision (Computer Vision + Multimodal), Azure Computer Vision (Direct Embeddings)
+- **Embedding Models**: text-embedding-ada-002 (1536D), text-embedding-3-small (1536D), text-embedding-3-large (3072D)
 - **3D Generation**: Hugging Face Spaces (frogleo/Image-to-3D)
 - **Document Generation**: External PowerPoint API
 - **Image Processing**: Canvas API (client-side)
-- **Machine Learning**: Azure AI Vision models, Azure OpenAI text-embedding-ada-002
+- **Machine Learning**: Azure AI Vision models, Multi-model embeddings, GPT-4o vision analysis, Multimodal embeddings
 
 ## 📁 Project Structure
 
@@ -368,11 +434,7 @@ GPTImage/
 ├── src/
 │   ├── components/
 │   │   ├── Navigation.tsx       # Shared navigation component
-│   │   └── ImageScorer.tsx      # Azure AI Vision scoring component
-│   ├── types/
-│   │   └── scoring.ts           # TypeScript interfaces for Azure Vision scoring
-│   ├── lib/
-│   │   └── scoringUtils.ts      # Scoring utility functions
+│   │   └── ImageScorer.tsx      # Advanced multi-method scoring component with comprehensive analytics
 │   └── app/
 │       ├── globals.css          # Global styles
 │       ├── layout.tsx           # Root layout
@@ -399,7 +461,7 @@ GPTImage/
 │           ├── edit-image/
 │           │   └── route.ts     # Image editing API
 │           └── score-image/
-│               └── route.ts     # Azure AI Vision-based image scoring API
+│               └── route.ts     # Multi-method scoring API with comprehensive embedding analysis
 ```
 
 ## 🔐 Configuration Management
@@ -432,6 +494,17 @@ AZURE_OPENAI_SORA_DEPLOYMENT_NAME=sora-model
 ```env
 AZURE_AI_VISION_ENDPOINT=https://your-computer-vision-resource.cognitiveservices.azure.com/
 AZURE_AI_VISION_API_KEY=your-computer-vision-api-key
+```
+
+**Azure OpenAI Embeddings (Multi-Model):**
+```env
+# Uses same endpoint and API key as main Azure OpenAI service
+# Requires these model deployments:
+# - text-embedding-ada-002 (Legacy, 1536D)
+# - text-embedding-3-small (Efficient, 1536D) 
+# - text-embedding-3-large (Performance, 3072D)
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_API_KEY=your-api-key
 ```
 
 **Hugging Face Integration:**
@@ -478,7 +551,15 @@ Image Upload → Iterative Page → Sequential Edits → Canvas History → Undo
 
 ### **Image Quality Scoring Flow:**
 ```
-Image Upload + Text Prompt → Scoring Page → /api/score-image → Azure AI Vision → Caption Generation → Azure OpenAI Embeddings → Semantic Similarity → Visual Score Display
+Comprehensive Multi-Method Analysis:
+Image Upload + Text Prompt → Scoring Page → /api/score-image →
+
+Method 1: Azure AI Vision → Caption Generation → 3-Large Embeddings → Similarity Score
+Method 2: GPT-4o Vision → Detailed Description → 3-Large Embeddings → Similarity Score  
+Method 3: Azure Computer Vision → Multimodal Embeddings → Direct Image-Text Comparison
+Method 4: Embedding Comparison → Ada-002 + 3-Small + 3-Large → Parallel Analysis
+
+→ Comprehensive Results Display with Model Performance Analytics
 ```
 
 ### **PowerPoint Generation Flow:**
@@ -535,10 +616,18 @@ Images → PowerPoint API Upload → Edited Content → /create-from-template �
 6. **Mobile App**: React Native companion app
 7. **Advanced Editing**: Layer-based editing with multiple masks
 8. **AI Improvements**: Fine-tuned models for specific use cases
-9. **Scoring History**: Track and analyze scoring results over time
-10. **Advanced 3D Features**: Texture mapping, animation support
-11. **Video Enhancement**: Longer videos, custom styles, post-processing
-12. **Multi-Model Scoring**: Combine multiple AI models for better accuracy
+9. **Enhanced Prompt Features**: 
+   - **Custom Categories**: User-defined prompt enhancement categories
+   - **Smart Suggestions**: AI-powered prompt optimization recommendations
+   - **Template System**: Save and reuse successful prompt combinations
+   - **Industry-Specific Options**: Specialized prompts for different product categories
+   - **Advanced Styling**: More granular control over lighting, materials, and composition
+9. **Scoring History**: Track and analyze scoring results over time with trend analysis
+10. **Advanced Scoring Features**: Custom embedding models, fine-tuned similarity thresholds, domain-specific scoring
+11. **Scoring Analytics Dashboard**: Performance metrics, cost analysis, model comparison insights
+12. **Advanced 3D Features**: Texture mapping, animation support
+13. **Video Enhancement**: Longer videos, custom styles, post-processing
+14. **Multi-Model Ensemble Scoring**: Weighted combination of multiple AI models for optimal accuracy
 
 ### **Technical Improvements:**
 1. **Database Integration**: PostgreSQL/MongoDB for persistence
@@ -584,12 +673,12 @@ Images → PowerPoint API Upload → Edited Content → /create-from-template �
 3. **Scalable Structure**: Easy to extend and maintain with shared components and utilities
 4. **Type Safety**: Full TypeScript implementation with proper interfaces for all features
 5. **Modern Stack**: Latest React and Next.js features with App Router and Python integration
-6. **User Experience**: Responsive, intuitive interface with accessibility features across all modalities
+6. **User Experience**: Responsive, intuitive interface with accessibility features across all modalities, including comprehensive prompt enhancement system for optimized AI interactions
 7. **API Integration**: Clean external service integration with proper error handling for multiple AI services
 8. **Configuration**: Flexible environment management with separate service configs for each AI provider
 9. **Performance**: Optimized processing for images, videos, 3D models, and real-time scoring
 10. **Workflow Support**: Sequential and batch operations for all content types
-11. **Quality Assessment**: Integrated Azure AI Vision-based scoring system for content quality evaluation
+11. **Advanced Quality Assessment**: Multi-method scoring system with Azure AI Vision, GPT-4o analysis, multimodal embeddings, and comparative embedding model analysis for comprehensive content quality evaluation
 12. **Cross-Platform Scripts**: Python utilities integrated with Node.js for specialized processing
 13. **Developer Experience**: Well-documented code with comprehensive architecture and testing utilities
 

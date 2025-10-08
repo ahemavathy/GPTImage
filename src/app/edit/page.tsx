@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Upload, Edit3, Download, Loader2, ArrowLeft, X } from 'lucide-react'
+import { Upload, Edit3, Download, Loader2, ArrowLeft, X, ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
 import Navigation from '@/components/Navigation'
 
@@ -25,6 +25,20 @@ export default function EditImagePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editedImage, setEditedImage] = useState<EditResponse | null>(null)
   const [error, setError] = useState('')
+  const [showMaskSection, setShowMaskSection] = useState(false)
+  
+  // Prompt enhancement state
+  const [showPromptEnhancer, setShowPromptEnhancer] = useState(false)
+  const [enhancementOptions, setEnhancementOptions] = useState({
+    material: '',
+    color: '',
+    finish: '',
+    surface: '',
+    background: '',
+    lighting: '',
+    cameraAngle: '',
+    style: ''
+  })
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
@@ -74,6 +88,88 @@ export default function EditImagePage() {
     setEditedImage(null)
     setError('')
   }
+
+  // Prompt enhancement options
+  const promptOptions = {
+    material: ['ceramic', 'glass', 'matte metal', 'stainless steel', 'wood', 'plastic'],
+    color: ['white', 'black', 'pastel blue', 'navy blue', 'cream', 'gray', 'clear'],
+    finish: ['glossy', 'matte', 'textured', 'smooth', 'brushed', 'polished'],
+    surface: ['wooden table', 'marble countertop', 'concrete slab', 'glass table', 'leather surface', 'fabric surface'],
+    background: ['plain white', 'blurred kitchen', 'outdoor café scene', 'modern office', 'cozy home', 'neutral backdrop'],
+    lighting: ['soft ambient light', 'studio lighting', 'natural sunlight', 'dramatic shadows', 'golden hour light', 'bright daylight'],
+    cameraAngle: ['top-down', 'front view', '45° angle', 'close-up macro shot', 'side view', 'three-quarter view'],
+    style: ['photorealistic', 'minimalistic', 'lifestyle shot', 'flat lay', 'product photography', 'artistic']
+  }
+
+  const generateEnhancedPrompt = () => {
+    let structuredPrompt = ''
+    
+    // Start with the basic prompt if provided
+    if (editPrompt.trim()) {
+      structuredPrompt = editPrompt.trim()
+    }
+    
+    // Build product description: [finish] [color] [material] [product]
+    const productParts: string[] = []
+    if (enhancementOptions.finish) productParts.push(enhancementOptions.finish)
+    if (enhancementOptions.color) productParts.push(enhancementOptions.color)
+    if (enhancementOptions.material) productParts.push(enhancementOptions.material)
+    
+    // If we have product attributes, apply them to the main subject
+    if (productParts.length > 0) {
+      const productDescription = productParts.join(' ')
+      if (structuredPrompt) {
+        // If there's already a prompt, enhance it with product attributes
+        structuredPrompt = `${productDescription} ${structuredPrompt}`
+      } else {
+        // If no base prompt, start with product attributes
+        structuredPrompt = `${productDescription} product`
+      }
+    }
+    
+    // Add surface/background: "on [surface]" or "with [background]"
+    let surfaceBackground = ''
+    if (enhancementOptions.surface) {
+      surfaceBackground = `on a ${enhancementOptions.surface}`
+    }
+    if (enhancementOptions.background) {
+      surfaceBackground = `with ${enhancementOptions.background}`
+    }
+    
+    // Build the final structured prompt
+    const finalParts: string[] = []
+    if (structuredPrompt) finalParts.push(structuredPrompt)
+    if (surfaceBackground) finalParts.push(surfaceBackground)
+    if (enhancementOptions.lighting) finalParts.push(enhancementOptions.lighting)
+    if (enhancementOptions.cameraAngle) finalParts.push(enhancementOptions.cameraAngle)
+    if (enhancementOptions.style) finalParts.push(`${enhancementOptions.style} style`)
+    
+    // Always add professional photo attributes
+    //finalParts.push('high-resolution', 'studio shot')
+    
+    return finalParts.join(', ')
+  }
+
+  const applyEnhancedPrompt = () => {
+    const enhanced = generateEnhancedPrompt()
+    setEditPrompt(enhanced)
+    setShowPromptEnhancer(false)
+  }
+
+  const resetEnhancementOptions = () => {
+    setEnhancementOptions({
+      material: '',
+      color: '',
+      finish: '',
+      surface: '',
+      background: '',
+      lighting: '',
+      cameraAngle: '',
+      style: ''
+    })
+  }
+
+
 
   const handleMaskSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -270,74 +366,93 @@ export default function EditImagePage() {
 
           {/* Mask Upload Section */}
           <div className="mt-8">
-            <h3 className="text-lg font-semibold text-gray-700 mb-4">Optional Mask Image</h3>
-            <div
-              className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-400 transition-colors cursor-pointer"
-              onClick={() => document.getElementById('mask-upload')?.click()}
-              onDrop={(e) => {
-                e.preventDefault()
-                const file = e.dataTransfer.files[0]
-                if (file) handleMaskSelect({ target: { files: [file] } } as any)
-              }}
-              onDragOver={(e) => e.preventDefault()}
-              onDragEnter={(e) => e.preventDefault()}
+            <div 
+              className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 -m-2 rounded-lg transition-colors mb-4"
+              onClick={() => setShowMaskSection(!showMaskSection)}
+              title="Click to toggle mask section"
             >
-              {selectedMask ? (
-                <div className="space-y-3">
-                  <img
-                    src={maskPreviewUrl}
-                    alt="Mask preview"
-                    className="w-24 h-24 object-cover rounded-lg border mx-auto"
-                  />
-                  <p className="text-sm text-gray-600">{selectedMask.name}</p>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedMask(null)
-                      setMaskPreviewUrl('')
-                    }}
-                    className="text-purple-600 hover:text-purple-700 text-sm underline"
-                  >
-                    Remove mask
-                  </button>
-                </div>
+              <h3 className="text-lg font-semibold text-gray-700">
+                Mask Image (Optional)
+                {selectedMask && <span className="ml-2 text-blue-600 text-sm">• Active</span>}
+              </h3>
+              {showMaskSection ? (
+                <ChevronUp className="w-5 h-5 text-gray-500" />
               ) : (
-                <div className="space-y-3">
-                  <Upload className="w-8 h-8 text-gray-400 mx-auto" />
-                  <div>
-                    <p className="text-gray-600 mb-2 text-sm">
-                      Drag and drop PNG mask image here, or click to browse
-                    </p>
-                    <div className="text-xs text-gray-500 mb-3 bg-blue-50 p-3 rounded border border-blue-200">
-                      <strong>Mask Requirements:</strong>
-                      <ul className="mt-1 space-y-1 text-left">
-                        <li>• Must be PNG format with transparency (alpha channel)</li>
-                        <li>• Transparent areas = areas to be edited</li>
-                        <li>• Opaque areas = areas to keep unchanged</li>
-                        <li>• Should match the size of your main image</li>
-                        <li>• Maximum 4MB file size</li>
-                      </ul>
-                    </div>
-                    <Link 
-                      href="/mask" 
-                      className="inline-block bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 transition-colors mb-2"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Create Mask →
-                    </Link>
-                  </div>
-                  <p className="text-xs text-gray-500">PNG with alpha channel - Optional</p>
-                </div>
+                <ChevronDown className="w-5 h-5 text-gray-500" />
               )}
             </div>
+            
+            {showMaskSection && (
+              <div className="transition-all duration-300 ease-in-out overflow-hidden">
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-400 transition-colors cursor-pointer"
+                  onClick={() => document.getElementById('mask-upload')?.click()}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    const file = e.dataTransfer.files[0]
+                    if (file) handleMaskSelect({ target: { files: [file] } } as any)
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDragEnter={(e) => e.preventDefault()}
+                >
+                  {selectedMask ? (
+                    <div className="space-y-3">
+                      <img
+                        src={maskPreviewUrl}
+                        alt="Mask preview"
+                        className="w-24 h-24 object-cover rounded-lg border mx-auto"
+                      />
+                      <p className="text-sm text-gray-600">{selectedMask.name}</p>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedMask(null)
+                          setMaskPreviewUrl('')
+                        }}
+                        className="text-purple-600 hover:text-purple-700 text-sm underline"
+                      >
+                        Remove mask
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <Upload className="w-8 h-8 text-gray-400 mx-auto" />
+                      <div>
+                        <p className="text-gray-600 mb-2 text-sm">
+                          Drag and drop PNG mask image here, or click to browse
+                        </p>
+                        <div className="text-xs text-gray-500 mb-3 bg-blue-50 p-3 rounded border border-blue-200">
+                          <strong>Mask Requirements:</strong>
+                          <ul className="mt-1 space-y-1 text-left">
+                            <li>• Must be PNG format with transparency (alpha channel)</li>
+                            <li>• Transparent areas = areas to be edited</li>
+                            <li>• Opaque areas = areas to keep unchanged</li>
+                            <li>• Should match the size of your main image</li>
+                            <li>• Maximum 4MB file size</li>
+                          </ul>
+                        </div>
+                        <Link 
+                          href="/mask" 
+                          className="inline-block bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 transition-colors mb-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Create Mask →
+                        </Link>
+                      </div>
+                      <p className="text-xs text-gray-500">PNG with alpha channel - Optional</p>
+                    </div>
+                  )}
+                </div>
 
-            <input
-              id="mask-upload"
-              type="file"
-              accept="image/png,.png"
-              onChange={handleMaskSelect}
-              className="hidden"
-            />
+                <input
+                  id="mask-upload"
+                  type="file"
+                  accept="image/png,.png"
+                  onChange={handleMaskSelect}
+                  className="hidden"
+                />
+              </div>
+            )}
           </div>
 
           {/* Edit Prompt */}
@@ -353,6 +468,27 @@ export default function EditImagePage() {
               className="w-full h-32 p-4 border-2 border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all text-gray-900 placeholder-gray-500 bg-white"
               disabled={isEditing}
             />
+            
+            {/* Prompt Enhancement Button */}
+            <div className="mt-3 flex justify-between items-center">
+              <button
+                type="button"
+                onClick={() => setShowPromptEnhancer(true)}
+                disabled={isEditing}
+                className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                ✨ Enhance Prompt
+              </button>
+              
+              {/* Preview enhanced prompt */}
+              {(enhancementOptions.material || enhancementOptions.color || enhancementOptions.finish || 
+                enhancementOptions.surface || enhancementOptions.background || enhancementOptions.lighting || 
+                enhancementOptions.cameraAngle || enhancementOptions.style) && (
+                <div className="text-xs text-gray-500 max-w-md">
+                  Preview: {generateEnhancedPrompt().substring(0, 100)}...
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Number of Images */}
@@ -521,6 +657,187 @@ export default function EditImagePage() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Prompt Enhancement Modal */}
+        {showPromptEnhancer && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900">Enhance Your Prompt</h3>
+                  <button
+                    onClick={() => setShowPromptEnhancer(false)}
+                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Product Details */}
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold text-gray-800">Product Details</h4>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Material</label>
+                      <select
+                        value={enhancementOptions.material}
+                        onChange={(e) => setEnhancementOptions(prev => ({...prev, material: e.target.value}))}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      >
+                        <option value="" className="text-gray-900">Select material</option>
+                        {promptOptions.material.map(option => (
+                          <option key={option} value={option} className="text-gray-900">{option}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
+                      <select
+                        value={enhancementOptions.color}
+                        onChange={(e) => setEnhancementOptions(prev => ({...prev, color: e.target.value}))}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      >
+                        <option value="" className="text-gray-900">Select color</option>
+                        {promptOptions.color.map(option => (
+                          <option key={option} value={option} className="text-gray-900">{option}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Finish</label>
+                      <select
+                        value={enhancementOptions.finish}
+                        onChange={(e) => setEnhancementOptions(prev => ({...prev, finish: e.target.value}))}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      >
+                        <option value="" className="text-gray-900">Select finish</option>
+                        {promptOptions.finish.map(option => (
+                          <option key={option} value={option} className="text-gray-900">{option}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Background & Surface */}
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold text-gray-800">Background & Surface</h4>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Surface</label>
+                      <select
+                        value={enhancementOptions.surface}
+                        onChange={(e) => setEnhancementOptions(prev => ({...prev, surface: e.target.value}))}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      >
+                        <option value="" className="text-gray-900">Select surface</option>
+                        {promptOptions.surface.map(option => (
+                          <option key={option} value={option} className="text-gray-900">{option}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Background</label>
+                      <select
+                        value={enhancementOptions.background}
+                        onChange={(e) => setEnhancementOptions(prev => ({...prev, background: e.target.value}))}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      >
+                        <option value="" className="text-gray-900">Select background</option>
+                        {promptOptions.background.map(option => (
+                          <option key={option} value={option} className="text-gray-900">{option}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Lighting */}
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold text-gray-800">Lighting</h4>
+                    <select
+                      value={enhancementOptions.lighting}
+                      onChange={(e) => setEnhancementOptions(prev => ({...prev, lighting: e.target.value}))}
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    >
+                      <option value="" className="text-gray-900">Select lighting</option>
+                      {promptOptions.lighting.map(option => (
+                        <option key={option} value={option} className="text-gray-900">{option}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Camera Angle */}
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold text-gray-800">Camera Angle</h4>
+                    <select
+                      value={enhancementOptions.cameraAngle}
+                      onChange={(e) => setEnhancementOptions(prev => ({...prev, cameraAngle: e.target.value}))}
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    >
+                      <option value="" className="text-gray-900">Select camera angle</option>
+                      {promptOptions.cameraAngle.map(option => (
+                        <option key={option} value={option} className="text-gray-900">{option}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Style */}
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold text-gray-800">Style</h4>
+                    <select
+                      value={enhancementOptions.style}
+                      onChange={(e) => setEnhancementOptions(prev => ({...prev, style: e.target.value}))}
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    >
+                      <option value="" className="text-gray-900">Select style</option>
+                      {promptOptions.style.map(option => (
+                        <option key={option} value={option} className="text-gray-900">{option}</option>
+                      ))}
+                    </select>
+                  </div>
+
+
+                </div>
+
+                {/* Enhanced Prompt Preview */}
+                {generateEnhancedPrompt() && (
+                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h5 className="text-sm font-medium text-blue-800 mb-2">Enhanced Prompt Preview:</h5>
+                    <p className="text-sm text-blue-700 italic">"{generateEnhancedPrompt()}"</p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="mt-6 flex justify-between">
+                  <button
+                    onClick={resetEnhancementOptions}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                  >
+                    Reset All
+                  </button>
+                  
+                  <div className="space-x-3">
+                    <button
+                      onClick={() => setShowPromptEnhancer(false)}
+                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={applyEnhancedPrompt}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Apply Enhanced Prompt
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
