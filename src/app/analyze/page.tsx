@@ -622,7 +622,7 @@ export default function ImageAnalysisPage() {
                 id="guidelines-input"
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
-                placeholder="I want to create a compelling presentation that highlights the new air fryer's sophistication and strengthens our brand's positioning as a premium kitchen appliance."
+                placeholder="I want to create a compelling presentation that highlights the new air fryer's sophistication and strengthens our brand's positioning as a premium kitchen appliance. Limit to 4 slides."
                 className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none bg-white text-gray-900 placeholder-gray-500"
                 aria-describedby="guidelines-help"
                 required
@@ -751,15 +751,15 @@ export default function ImageAnalysisPage() {
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
                         <span className="text-blue-600">Prompt:</span>
-                        <span className="ml-1 font-medium">{response.usage.prompt_tokens}</span>
+                        <span className="ml-1 font-medium text-blue-900">{response.usage.prompt_tokens}</span>
                       </div>
                       <div>
                         <span className="text-blue-600">Response:</span>
-                        <span className="ml-1 font-medium">{response.usage.completion_tokens}</span>
+                        <span className="ml-1 font-medium text-blue-900">{response.usage.completion_tokens}</span>
                       </div>
                       <div>
                         <span className="text-blue-600">Total:</span>
-                        <span className="ml-1 font-medium">{response.usage.total_tokens}</span>
+                        <span className="ml-1 font-medium text-blue-900">{response.usage.total_tokens}</span>
                       </div>
                     </div>
                   </div>

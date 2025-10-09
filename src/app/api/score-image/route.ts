@@ -558,7 +558,8 @@ async function getImageEmbedding(imageBuffer: Buffer, endpoint: string, apiKey: 
   try {
     const vectorizeUrl = `${endpoint.replace(/\/$/, '')}/computervision/retrieval:vectorizeImage?api-version=2024-02-01&model-version=2023-04-15`;
 
-    console.log(`[Multimodal] Getting image embedding from: ${vectorizeUrl}`);
+
+    console.log(`[MM Embedding - Image] Endpoint: ${vectorizeUrl}`);
 
     const response = await fetch(vectorizeUrl, {
       method: 'POST',
@@ -568,6 +569,8 @@ async function getImageEmbedding(imageBuffer: Buffer, endpoint: string, apiKey: 
       },
       body: new Uint8Array(imageBuffer),
     });
+
+
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -598,8 +601,9 @@ async function getImageEmbedding(imageBuffer: Buffer, endpoint: string, apiKey: 
 async function getTextEmbeddingFromVision(text: string, endpoint: string, apiKey: string): Promise<number[] | null> {
   try {
     const vectorizeUrl = `${endpoint.replace(/\/$/, '')}/computervision/retrieval:vectorizeText?api-version=2024-02-01&model-version=2023-04-15`;
+    const requestBody = { text: text.trim() };
 
-    console.log(`[Multimodal] Getting text embedding for: "${text}"`);
+    console.log(`[MM Embedding - Text] Endpoint: ${vectorizeUrl}`);
 
     const response = await fetch(vectorizeUrl, {
       method: 'POST',
@@ -607,9 +611,7 @@ async function getTextEmbeddingFromVision(text: string, endpoint: string, apiKey
         'Ocp-Apim-Subscription-Key': apiKey,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        text: text.trim()
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {

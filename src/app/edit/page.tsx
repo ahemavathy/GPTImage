@@ -92,10 +92,10 @@ export default function EditImagePage() {
   // Prompt enhancement options
   const promptOptions = {
     material: ['ceramic', 'glass', 'matte metal', 'stainless steel', 'wood', 'plastic'],
-    color: ['white', 'black', 'pastel blue', 'navy blue', 'cream', 'gray', 'clear'],
+    color: ['white', 'black', 'pastel blue', 'cream', 'gray', 'clear', 'red'],
     finish: ['glossy', 'matte', 'textured', 'smooth', 'brushed', 'polished'],
     surface: ['wooden table', 'marble countertop', 'concrete slab', 'glass table', 'leather surface', 'fabric surface'],
-    background: ['plain white', 'blurred kitchen', 'outdoor café scene', 'modern office', 'cozy home', 'neutral backdrop'],
+    background: ['plain white', 'blurred kitchen', 'outdoor café scene', 'modern office', 'cozy home', 'neutral backdrop', 'modern kitchen'],
     lighting: ['soft ambient light', 'studio lighting', 'natural sunlight', 'dramatic shadows', 'golden hour light', 'bright daylight'],
     cameraAngle: ['top-down', 'front view', '45° angle', 'close-up macro shot', 'side view', 'three-quarter view'],
     style: ['photorealistic', 'minimalistic', 'lifestyle shot', 'flat lay', 'product photography', 'artistic']
